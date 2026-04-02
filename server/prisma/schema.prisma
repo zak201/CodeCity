@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  username       String   @unique
+  xp             Int      @default(0)
+  level          Int      @default(1)
+  placementLevel String?
+  createdAt      DateTime @default(now())
+
+  progresses UserProgress[]
+  streak     Streak?
+}
+
+model UserProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  districtId  String
+  levelId     String
+  stars       Int
+  completedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Streak {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  currentStreak  Int       @default(0)
+  longestStreak  Int       @default(0)
+  lastPlayedDate DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
