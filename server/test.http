@@ -1,0 +1,47 @@
+# CodeCity API — VS Code REST Client
+# Variables : adapte @host si le port 3000 est déjà pris (ex. Docker) → mets PORT dans server/.env
+@host = http://localhost:3000
+# ID du premier user du seed (CodeArchitect01), ordre createdAt asc — à mettre à jour après un `prisma migrate reset`
+@firstUserId = cmnhhb2kk00007hq402pwinkj
+# Ré-exécution du POST ### 3 sans reset → 409 si « TestArchi » existe déjà ; change le username.
+
+### 1 - Liste tous les users
+GET {{host}}/api/users
+
+### 2 - User inexistant → doit retourner 404
+GET {{host}}/api/users/id-qui-nexiste-pas
+
+### 3 - Créer un user valide
+POST {{host}}/api/users
+Content-Type: application/json
+
+{ "username": "TestArchi" }
+
+### 4 - Créer un user sans username → doit retourner 400
+POST {{host}}/api/users
+Content-Type: application/json
+
+{}
+
+### 5 - Progress d'un user (remplace l'id par celui du seed)
+GET {{host}}/api/progress/{{firstUserId}}
+
+### 6 - Progress user inexistant → doit retourner 404
+GET {{host}}/api/progress/id-qui-nexiste-pas
+
+### 7 - Enregistrer un niveau complété
+POST {{host}}/api/progress
+Content-Type: application/json
+
+{
+  "userId": "{{firstUserId}}",
+  "districtId": "q1",
+  "levelId": "q1-l1",
+  "stars": 3
+}
+
+### 8 - Progress sans champs → doit retourner 400
+POST {{host}}/api/progress
+Content-Type: application/json
+
+{}

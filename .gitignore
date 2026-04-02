@@ -1,0 +1,96 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# --- Dépendances ---
+node_modules/
+
+# --- Expo & Metro ---
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# --- Variables d’environnement (ne pas versionner les secrets) ---
+.env
+.env.*
+!.env.example
+
+# --- TypeScript ---
+*.tsbuildinfo
+
+# --- Journaux & caches ---
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.log*
+lerna-debug.log*
+.cache/
+
+# --- Tests & couverture ---
+coverage/
+.nyc_output/
+
+# --- Build natif généré (prebuild / run:ios|android local) ---
+/ios
+/android
+
+# --- Android (artefacts hors dossier /android ignoré) ---
+*.apk
+*.aab
+*.ap_
+*.dex
+local.properties
+.gradle/
+
+# --- iOS / Xcode ---
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hprof
+*.ipa
+*.dSYM.zip
+*.dSYM
+Pods/
+
+# --- Certificats & clés sensibles ---
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+*.orig.*
+
+# --- Kotlin (Android / tooling) ---
+.kotlin/
+
+# --- React Native ---
+*.jsbundle
+*.bundle
+
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- Windows ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Éditeurs & IDE ---
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
