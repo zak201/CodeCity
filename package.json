@@ -1,7 +1,7 @@
 {
   "name": "codecity",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start",
     "dev:server": "npm --prefix server run dev",
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "babel-preset-expo": "^55.0.13",
     "typescript": "~5.9.2"
   },
   "private": true
