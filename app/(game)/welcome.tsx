@@ -1,29 +1,45 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import {
+  Dimensions,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+import { LOGBubble } from '../../components/log/LOGBubble';
+import { COLORS } from '../../constants/colors';
 import { useUserStore } from '../../store/userStore';
 
-const COLORS = {
-  bg: '#0F172A',
-  text: '#F8FAFC',
-  muted: '#94A3B8',
-  accent: '#6366F1',
-  logBg: '#334155',
-};
+const mono = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default: 'monospace',
+});
 
-function LOGBubble() {
+/** Fines lignes horizontales type CRT / scanlines (opacité faible, non interactif). */
+function ScanLineOverlay() {
+  const indices = useMemo(() => {
+    const h = Dimensions.get('window').height;
+    const count = Math.min(240, Math.max(80, Math.ceil(h / 6) + 32));
+    return Array.from({ length: count }, (_, i) => i);
+  }, []);
+
   return (
-    <View style={styles.logRow}>
-      <View style={styles.logAvatar}>
-        <Text style={styles.logAvatarText}>LOG</Text>
-      </View>
-      <View style={styles.logBubble}>
-        <Text style={styles.logText}>
-          La ville de CodeCity a besoin d&apos;un Code Architect. Es-tu prêt
-          ?
-        </Text>
-      </View>
+    <View
+      style={styles.scanlines}
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {indices.map((i) => (
+        <View key={i} style={styles.scanRow}>
+          <View style={styles.scanHairline} />
+        </View>
+      ))}
     </View>
   );
 }
@@ -36,12 +52,18 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <ScanLineOverlay />
       <View style={styles.body}>
         <Text style={styles.brand} accessibilityRole="header">
-          CodeCity
+          CODECITY
         </Text>
 
-        <LOGBubble />
+        <LOGBubble
+          message="La ville de CodeCity a besoin d'un Code Architect. Es-tu prêt ?"
+          mood="mysterious"
+          animated
+          style={styles.logBubbleWrap}
+        />
 
         <Pressable
           onPress={() =>
@@ -74,66 +96,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
+  scanlines: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  scanRow: {
+    height: 7,
+    justifyContent: 'flex-start',
+  },
+  /** Ligne ~1 px ; opacité ~2 % pour un effet CRT discret. */
+  scanHairline: {
+    height: 1,
+    backgroundColor: COLORS.textPrimary,
+    opacity: 0.02,
+  },
   body: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 28,
+    zIndex: 1,
   },
   brand: {
-    color: COLORS.text,
-    fontSize: 44,
+    color: COLORS.neonPurple,
+    fontSize: 36,
     fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: -1,
+    letterSpacing: 2,
     marginBottom: 36,
+    fontFamily: mono as string,
   },
-  logRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  logBubbleWrap: {
     marginBottom: 40,
-  },
-  logAvatar: {
-    width: 44,
-    minHeight: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  logAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  logBubble: {
-    flex: 1,
-    backgroundColor: COLORS.logBg,
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  logText: {
-    color: COLORS.text,
-    fontSize: 16,
-    lineHeight: 24,
   },
   cta: {
     minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.neonPurple,
     borderRadius: 14,
     paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: COLORS.trackOn,
   },
   ctaPressed: {
     opacity: 0.88,
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: COLORS.textPrimary,
     fontSize: 17,
     fontWeight: '800',
+    fontFamily: mono as string,
   },
 });

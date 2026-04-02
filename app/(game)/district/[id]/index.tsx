@@ -2,16 +2,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { COLORS } from '../../../../constants/colors';
 import { districts } from '../../../../data/districts';
 import { getLevelsForDistrict } from '../../../../data/levels/q1-variables';
-
-const COLORS = {
-  bg: '#0F172A',
-  card: '#1E293B',
-  text: '#F8FAFC',
-  muted: '#94A3B8',
-  accent: '#6366F1',
-};
 
 function normalizeParam(p: string | string[] | undefined): string {
   if (p === undefined) return '';
@@ -116,18 +109,18 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   backLabel: {
-    color: COLORS.accent,
+    color: COLORS.neonPurple,
     fontSize: 16,
     fontWeight: '600',
   },
   title: {
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     fontSize: 26,
     fontWeight: '800',
     marginBottom: 6,
   },
   subtitle: {
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 15,
     marginBottom: 24,
   },
@@ -137,18 +130,18 @@ const styles = StyleSheet.create({
   levelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.bgCard,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.trackOn,
   },
   levelRowPressed: {
     opacity: 0.92,
   },
   levelOrder: {
-    color: COLORS.accent,
+    color: COLORS.neonPurple,
     fontSize: 18,
     fontWeight: '800',
     width: 28,
@@ -158,36 +151,36 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   levelTitle: {
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: '700',
   },
   levelHint: {
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 13,
     marginTop: 4,
   },
   chev: {
-    color: COLORS.muted,
+    color: COLORS.textMuted,
     fontSize: 22,
     fontWeight: '300',
   },
   emptyCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.bgCard,
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: COLORS.trackOn,
   },
   emptyText: {
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 17,
     textAlign: 'center',
     marginBottom: 20,
   },
   primaryBtn: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.neonPurple,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,

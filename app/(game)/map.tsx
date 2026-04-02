@@ -1,48 +1,59 @@
-import { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Svg, { Circle, G, Line, Text as SvgText } from 'react-native-svg';
 
+import { COLORS } from '../../constants/colors';
 import { districts } from '../../data/districts';
-import { useUserStore } from '../../store/userStore';
 import { useProgressStore } from '../../store/progressStore';
 import { useStreakStore } from '../../store/streakStore';
+import { useUserStore } from '../../store/userStore';
 import type { District } from '../../types/game';
 
-// ---------------------------------------------------------------------------
-// Couleurs
-// ---------------------------------------------------------------------------
+/** Police monospace cohérente avec le reste de l’app. */
+const monoFamily = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default: 'monospace',
+});
 
-const COLORS = {
-  bg: '#0F172A',
-  card: '#1E293B',
-  text: '#F8FAFC',
-  muted: '#94A3B8',
-  accent: '#6366F1',
-  streak: '#F59E0B',
-  xp: '#22C55E',
-  banner: '#422006',
-  bannerBorder: '#CA8A04',
-};
+const VIEWBOX_W = 360;
+const VIEWBOX_H = 520;
 
-// ---------------------------------------------------------------------------
-// Icônes textuelles (remplaçables par SVG / Lottie plus tard)
-// ---------------------------------------------------------------------------
+/** Positions des nœuds (indices = tableau districts). */
+const NODE_POSITIONS: { x: number; y: number }[] = [
+  { x: 56, y: 88 },
+  { x: 200, y: 88 },
+  { x: 304, y: 88 },
+  { x: 304, y: 200 },
+  { x: 200, y: 200 },
+  { x: 56, y: 200 },
+  { x: 56, y: 320 },
+  { x: 200, y: 420 },
+];
 
-const DISTRICT_ICONS: Record<string, string> = {
-  variables: '{}',
-  conditions: '?!',
-  loops: '↻',
-  functions: 'fn',
-  lists: '[]',
-  sort: '⇅',
-  recursion: '∞',
-  tower: '⚑',
-};
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+function buildOrthogonalSegments(
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): { x: number; y: number }[][] {
+  if (from.x === to.x || from.y === to.y) {
+    return [[from, to]];
+  }
+  const mid1 = { x: to.x, y: from.y };
+  return [
+    [from, mid1],
+    [mid1, to],
+  ];
+}
 
 type DistrictStatus = 'locked' | 'unlocked' | 'in-progress' | 'completed';
 
@@ -56,57 +67,150 @@ function getDistrictStatus(
   return 'unlocked';
 }
 
-const STATUS_LABELS: Record<DistrictStatus, string> = {
-  locked: 'Verrouillé',
-  unlocked: 'Débloqué',
-  'in-progress': 'En cours',
-  completed: 'Complété',
+const DISTRICT_SHORT_LABEL: Record<string, string> = {
+  q1: 'VAR',
+  q2: 'IF',
+  q3: 'FOR',
+  q4: 'FN',
+  q5: '[]',
+  q6: 'TRI',
+  q7: 'REC',
+  boss: '⬡',
 };
 
-const STATUS_COLORS: Record<DistrictStatus, string> = {
-  locked: '#475569',
-  unlocked: COLORS.accent,
-  'in-progress': COLORS.streak,
-  completed: COLORS.xp,
-};
-
-// ---------------------------------------------------------------------------
-// Sous-composants
-// ---------------------------------------------------------------------------
-
-interface HeaderProps {
-  xp: number;
-  level: number;
-  streak: number;
+function isSegmentActive(destDistrict: District): boolean {
+  return !destDistrict.isLocked;
 }
 
-function Header({ xp, level, streak }: HeaderProps) {
+type Point = { x: number; y: number };
+
+function flattenSegmentsToPoints(
+  segmentsList: Point[][]
+): { points: Point[]; segmentLengths: number[]; totalLength: number } {
+  const points: Point[] = [];
+  const segmentLengths: number[] = [];
+  let totalLength = 0;
+
+  for (const seg of segmentsList) {
+    if (seg.length < 2) continue;
+    for (let i = 0; i < seg.length - 1; i++) {
+      const a = seg[i];
+      const b = seg[i + 1];
+      if (points.length === 0) points.push(a);
+      const len = Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
+      segmentLengths.push(len);
+      totalLength += len;
+      points.push(b);
+    }
+  }
+
+  return { points, segmentLengths, totalLength };
+}
+
+function pointAlongPolyline(
+  t: number,
+  points: Point[],
+  segmentLengths: number[],
+  totalLength: number
+): Point {
+  if (points.length === 0 || totalLength <= 0) return { x: 0, y: 0 };
+  if (points.length === 1) return points[0];
+  let dist = t * totalLength;
+  for (let i = 0; i < segmentLengths.length; i++) {
+    const segLen = segmentLengths[i];
+    if (dist <= segLen) {
+      const a = points[i];
+      const b = points[i + 1];
+      const ratio = segLen > 0 ? dist / segLen : 0;
+      return {
+        x: a.x + (b.x - a.x) * ratio,
+        y: a.y + (b.y - a.y) * ratio,
+      };
+    }
+    dist -= segLen;
+  }
+  return points[points.length - 1];
+}
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+/** Anneau pulsant pour l’état « en cours » (native driver désactivé pour compatibilité SVG). */
+function PulseHalo({
+  cx,
+  cy,
+  r,
+  color,
+  active,
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  color: string;
+  active: boolean;
+}) {
+  const opacity = useRef(new Animated.Value(0.45)).current;
+
+  useEffect(() => {
+    if (!active) {
+      opacity.setValue(0);
+      return;
+    }
+    opacity.setValue(0.45);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0.95,
+          duration: 650,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.35,
+          duration: 650,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [active, opacity]);
+
+  if (!active) return null;
+
   return (
-    <View style={styles.header}>
-      <View style={styles.headerLeft}>
-        <Text style={styles.headerLevel}>Niv. {level}</Text>
+    <AnimatedCircle
+      cx={cx}
+      cy={cy}
+      r={r + 9}
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      opacity={opacity}
+    />
+  );
+}
+
+function HeaderBar({ xp, streak }: { xp: number; streak: number }) {
+  return (
+    <View style={styles.headerBar} pointerEvents="box-none">
+      <Text style={styles.headerBrand} accessibilityRole="header">
+        CODECITY
+      </Text>
+      <View style={styles.headerStats}>
         <Text style={styles.headerXp}>{xp} XP</Text>
-      </View>
-      <View style={styles.streakBadge}>
-        <Text style={styles.streakIcon}>🔥</Text>
-        <Text style={styles.streakText}>{streak}</Text>
+        <View style={styles.streakPill}>
+          <Text style={styles.streakIcon}>🔥</Text>
+          <Text style={styles.streakNum}>{streak}</Text>
+        </View>
       </View>
     </View>
   );
 }
 
-interface RecruitmentBannerProps {
-  onGoTest: () => void;
-}
-
-/** Visible tant que le test de placement n’est pas terminé (pas de redirection forcée). */
-function RecruitmentBanner({ onGoTest }: RecruitmentBannerProps) {
+function RecruitmentBanner({ onGoTest }: { onGoTest: () => void }) {
   return (
-    <View
-      style={styles.banner}
-      accessibilityRole="alert"
-      importantForAccessibility="yes"
-    >
+    <View style={styles.banner} accessibilityRole="alert">
       <Text style={styles.bannerText}>
         Complète le test de recrutement pour débloquer la ville
       </Text>
@@ -125,89 +229,17 @@ function RecruitmentBanner({ onGoTest }: RecruitmentBannerProps) {
   );
 }
 
-interface DistrictCardProps {
-  district: District;
-  completedCount: number;
-  onPress: () => void;
-}
-
-function DistrictCard({ district, completedCount, onPress }: DistrictCardProps) {
-  const status = getDistrictStatus(district, completedCount);
-  const isLocked = status === 'locked';
-  const pct =
-    district.totalLevels > 0
-      ? Math.round((completedCount / district.totalLevels) * 100)
-      : 0;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={isLocked}
-      accessibilityLabel={`Quartier ${district.name}, ${STATUS_LABELS[status]}, ${pct}% complété`}
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        styles.districtCard,
-        { borderColor: district.color, opacity: isLocked ? 0.4 : 1 },
-        pressed && !isLocked && styles.districtCardPressed,
-      ]}
-    >
-      <View style={styles.districtRow}>
-        <View style={[styles.districtIcon, { backgroundColor: district.color }]}>
-          <Text style={styles.districtIconText}>
-            {DISTRICT_ICONS[district.icon] ?? '?'}
-          </Text>
-        </View>
-
-        <View style={styles.districtInfo}>
-          <Text style={styles.districtName}>{district.name}</Text>
-          <Text style={styles.districtConcept}>{district.concept}</Text>
-        </View>
-
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: STATUS_COLORS[status] },
-          ]}
-        >
-          <Text style={styles.statusText}>{STATUS_LABELS[status]}</Text>
-        </View>
-      </View>
-
-      <View style={styles.progressTrack}>
-        <View
-          style={[
-            styles.progressFill,
-            {
-              width: `${pct}%`,
-              backgroundColor: district.color,
-            },
-          ]}
-        />
-      </View>
-      <Text style={styles.progressLabel}>
-        {completedCount} / {district.totalLevels} niveaux
-      </Text>
-    </Pressable>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Écran principal (carte)
-// ---------------------------------------------------------------------------
-
 export default function CityMapScreen() {
   const router = useRouter();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const xp = useUserStore((s) => s.xp);
-  const level = useUserStore((s) => s.level);
   const placementLevel = useUserStore((s) => s.placementLevel);
-
-  const currentStreak = useStreakStore((s) => s.currentStreak);
-  const recordPlay = useStreakStore((s) => s.actions.recordPlay);
-
   const getCompletedCount = useProgressStore(
     (s) => s.actions.getCompletedCount
   );
+  const currentStreak = useStreakStore((s) => s.currentStreak);
+  const recordPlay = useStreakStore((s) => s.actions.recordPlay);
 
   useEffect(() => {
     if (placementLevel !== null) {
@@ -217,216 +249,440 @@ export default function CityMapScreen() {
 
   const needsPlacement = placementLevel === null;
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <Header xp={xp} level={level} streak={currentStreak} />
+  const { lines, activeSegmentsForParticle } = useMemo(() => {
+    const linesAcc: {
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      active: boolean;
+    }[] = [];
+    const particleSegs: Point[][] = [];
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    for (let i = 0; i < NODE_POSITIONS.length - 1; i++) {
+      const from = NODE_POSITIONS[i];
+      const to = NODE_POSITIONS[i + 1];
+      const dest = districts[i + 1];
+      const active = isSegmentActive(dest);
+      const ortho = buildOrthogonalSegments(from, to);
+      for (const seg of ortho) {
+        const [a, b] = seg;
+        linesAcc.push({
+          x1: a.x,
+          y1: a.y,
+          x2: b.x,
+          y2: b.y,
+          active,
+        });
+      }
+      if (active) {
+        for (const seg of ortho) {
+          particleSegs.push(seg);
+        }
+      } else {
+        break;
+      }
+    }
+
+    return { lines: linesAcc, activeSegmentsForParticle: particleSegs };
+  }, []);
+
+  const particlePath = useMemo(
+    () => flattenSegmentsToPoints(activeSegmentsForParticle),
+    [activeSegmentsForParticle]
+  );
+
+  const particleCx = useRef(new Animated.Value(0)).current;
+  const particleCy = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const { points, segmentLengths, totalLength } = particlePath;
+    if (totalLength <= 0 || points.length < 2) {
+      return undefined;
+    }
+    const start = pointAlongPolyline(0, points, segmentLengths, totalLength);
+    particleCx.setValue(start.x);
+    particleCy.setValue(start.y);
+    progress.setValue(0);
+
+    const sub = progress.addListener(({ value }) => {
+      const p = pointAlongPolyline(value, points, segmentLengths, totalLength);
+      particleCx.setValue(p.x);
+      particleCy.setValue(p.y);
+    });
+
+    const anim = Animated.loop(
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: 5000,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      })
+    );
+    anim.start();
+
+    return () => {
+      progress.removeListener(sub);
+      progress.stopAnimation(() => {});
+      anim.stop();
+    };
+  }, [particlePath, particleCx, particleCy, progress]);
+
+  const selectedDistrict = selectedId
+    ? districts.find((d) => d.id === selectedId)
+    : null;
+  const selectedCompleted = selectedId
+    ? getCompletedCount(selectedId)
+    : 0;
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View style={styles.root}>
+        <HeaderBar xp={xp} streak={currentStreak} />
+
         {needsPlacement ? (
           <RecruitmentBanner
             onGoTest={() => router.push('/(game)/placement-test')}
           />
         ) : null}
 
-        <Text style={styles.title}>CodeCity</Text>
-        <Text style={styles.subtitle}>Choisis ton quartier</Text>
+        <View style={styles.mapArea}>
+          <Svg
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {lines.map((ln, idx) => (
+              <Line
+                key={`ln-${idx}`}
+                x1={ln.x1}
+                y1={ln.y1}
+                x2={ln.x2}
+                y2={ln.y2}
+                stroke={ln.active ? COLORS.trackOn : COLORS.trackOff}
+                strokeWidth={ln.active ? 3 : 2}
+                strokeLinecap="square"
+              />
+            ))}
 
-        {districts.map((district) => (
-          <DistrictCard
-            key={district.id}
-            district={district}
-            completedCount={getCompletedCount(district.id)}
-            onPress={() =>
-              router.push(`/(game)/district/${district.id}` as const)
-            }
-          />
-        ))}
-      </ScrollView>
+            {districts.map((district, index) => {
+              const pos = NODE_POSITIONS[index];
+              if (!pos) return null;
+
+              const completed = getCompletedCount(district.id);
+              const status = getDistrictStatus(district, completed);
+              const isLocked = status === 'locked';
+              const shortLabel =
+                DISTRICT_SHORT_LABEL[district.id] ?? district.id.toUpperCase();
+              const isBoss = district.id === 'boss';
+
+              let fill: string = COLORS.bgTrack;
+              let stroke: string = COLORS.trackOn;
+              let labelColor: string = COLORS.textSecondary;
+
+              if (isBoss && !isLocked) {
+                stroke = COLORS.neonAmber;
+              }
+              if (isLocked) {
+                fill = COLORS.trackOff;
+                stroke = COLORS.trackOff;
+                labelColor = COLORS.textMuted;
+              } else if (status === 'completed') {
+                fill = COLORS.neonGreen;
+                stroke = COLORS.neonGreen;
+                labelColor = COLORS.bg;
+              } else if (status === 'in-progress') {
+                fill = COLORS.neonPurple;
+                stroke = COLORS.neonPurple;
+                labelColor = COLORS.textPrimary;
+              } else {
+                fill = COLORS.neonBlue;
+                stroke = COLORS.neonBlue;
+                labelColor = COLORS.textPrimary;
+              }
+
+              if (isBoss && isLocked) {
+                stroke = COLORS.neonAmber;
+              }
+
+              const r = isBoss ? 24 : 22;
+              const displayLabel = isLocked ? '🔒' : shortLabel;
+              const fontSize = displayLabel === '🔒' ? 14 : 13;
+              const groupOpacity = isLocked ? 0.3 : 1;
+
+              return (
+                <G
+                  key={district.id}
+                  opacity={groupOpacity}
+                  onPress={
+                    isLocked
+                      ? undefined
+                      : () => setSelectedId(district.id)
+                  }
+                  pointerEvents={isLocked ? 'none' : 'auto'}
+                >
+                  <PulseHalo
+                    cx={pos.x}
+                    cy={pos.y}
+                    r={r}
+                    color={COLORS.neonPurple}
+                    active={status === 'in-progress'}
+                  />
+                  <Circle
+                    cx={pos.x}
+                    cy={pos.y}
+                    r={r}
+                    fill={fill}
+                    stroke={stroke}
+                    strokeWidth={isBoss ? 3 : 2}
+                  />
+                  <SvgText
+                    x={pos.x}
+                    y={pos.y + 4}
+                    fill={labelColor}
+                    fontSize={fontSize}
+                    fontWeight="700"
+                    textAnchor="middle"
+                    fontFamily={monoFamily}
+                  >
+                    {displayLabel}
+                  </SvgText>
+                </G>
+              );
+            })}
+
+            {particlePath.totalLength > 0 ? (
+              <AnimatedCircle
+                cx={particleCx}
+                cy={particleCy}
+                r={5}
+                fill={COLORS.neonAmber}
+                opacity={0.95}
+              />
+            ) : null}
+          </Svg>
+        </View>
+
+        {selectedDistrict && !selectedDistrict.isLocked ? (
+          <View style={styles.bottomPanel}>
+            <View style={styles.panelHeader}>
+              <Text style={styles.panelTitle}>{selectedDistrict.name}</Text>
+              <Pressable
+                onPress={() => setSelectedId(null)}
+                accessibilityLabel="Fermer le panneau"
+                accessibilityRole="button"
+                hitSlop={12}
+              >
+                <Text style={styles.panelClose}>✕</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.panelConcept}>{selectedDistrict.concept}</Text>
+            <View style={styles.panelTrack}>
+              <View
+                style={[
+                  styles.panelFill,
+                  {
+                    width: `${Math.min(
+                      100,
+                      Math.round(
+                        (selectedCompleted / selectedDistrict.totalLevels) *
+                          100
+                      )
+                    )}%`,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.panelMeta}>
+              {selectedCompleted} / {selectedDistrict.totalLevels} niveaux
+            </Text>
+            <Pressable
+              onPress={() =>
+                router.push(`/(game)/district/${selectedDistrict.id}` as const)
+              }
+              accessibilityLabel="Jouer ce quartier"
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.playBtn,
+                pressed && styles.playBtnPressed,
+              ]}
+            >
+              <Text style={styles.playBtnText}>Jouer</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
     </SafeAreaView>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-
+  root: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 6,
+    paddingBottom: 10,
+    zIndex: 2,
+  },
+  headerBrand: {
+    fontFamily: monoFamily as string,
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.neonPurple,
+    letterSpacing: 1.2,
+  },
+  headerStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerXp: {
+    fontFamily: monoFamily as string,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.neonGreen,
+  },
+  streakPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: COLORS.trackOn,
+  },
+  streakIcon: {
+    fontSize: 14,
+  },
+  streakNum: {
+    fontFamily: monoFamily as string,
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.neonAmber,
+  },
   banner: {
-    backgroundColor: COLORS.banner,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: COLORS.bgCard,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.bannerBorder,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 20,
+    borderColor: COLORS.trackOn,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    zIndex: 2,
   },
   bannerText: {
-    color: COLORS.text,
-    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontSize: 14,
     fontWeight: '600',
-    lineHeight: 22,
-    marginBottom: 12,
+    lineHeight: 20,
+    marginBottom: 10,
     textAlign: 'center',
   },
   bannerBtn: {
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.neonPurple,
     borderRadius: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
   bannerBtnPressed: {
     opacity: 0.88,
   },
   bannerBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: COLORS.card,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  headerLevel: {
-    color: COLORS.accent,
-    fontSize: 16,
+    color: COLORS.textPrimary,
+    fontSize: 15,
     fontWeight: '800',
+    fontFamily: monoFamily as string,
   },
-  headerXp: {
-    color: COLORS.xp,
-    fontSize: 14,
+  mapArea: {
+    flex: 1,
+    minHeight: 200,
+  },
+  bottomPanel: {
+    backgroundColor: COLORS.bgCard,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: COLORS.trackOn,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  panelTitle: {
+    flex: 1,
+    color: COLORS.textPrimary,
+    fontSize: 18,
+    fontWeight: '800',
+    fontFamily: monoFamily as string,
+    marginRight: 8,
+  },
+  panelClose: {
+    color: COLORS.textSecondary,
+    fontSize: 18,
     fontWeight: '600',
   },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#292524',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  panelConcept: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    marginTop: 8,
+    lineHeight: 20,
   },
-  streakIcon: {
-    fontSize: 16,
-  },
-  streakText: {
-    color: COLORS.streak,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  // Scroll
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-
-  // Titres
-  title: {
-    color: COLORS.text,
-    fontSize: 30,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 15,
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 24,
-  },
-
-  // District card
-  districtCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    borderWidth: 2,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 14,
-  },
-  districtCardPressed: {
-    opacity: 0.85,
-  },
-  districtRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  districtIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  districtIconText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  districtInfo: {
-    flex: 1,
-  },
-  districtName: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  districtConcept: {
-    color: COLORS.muted,
-    fontSize: 13,
-    marginTop: 2,
-  },
-
-  // Status badge
-  statusBadge: {
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statusText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  // Progress
-  progressTrack: {
-    height: 5,
-    backgroundColor: '#334155',
+  panelTrack: {
+    height: 6,
+    backgroundColor: COLORS.trackOff,
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 4,
+    marginTop: 14,
   },
-  progressFill: {
-    height: 5,
+  panelFill: {
+    height: 6,
     borderRadius: 3,
+    backgroundColor: COLORS.neonGreen,
   },
-  progressLabel: {
-    color: COLORS.muted,
+  panelMeta: {
+    color: COLORS.textMuted,
     fontSize: 12,
+    marginTop: 6,
+    fontFamily: monoFamily as string,
+  },
+  playBtn: {
+    marginTop: 16,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.neonPurple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playBtnPressed: {
+    opacity: 0.88,
+  },
+  playBtnText: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: monoFamily as string,
   },
 });
