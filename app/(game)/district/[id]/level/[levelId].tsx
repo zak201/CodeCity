@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { QCM } from '../../../../../components/game/QCM';
+import { LOGBubble } from '../../../../../components/log/LOGBubble';
+import { LOGModal } from '../../../../../components/log/LOGModal';
+import { COLORS } from '../../../../../constants/colors';
 import { districts } from '../../../../../data/districts';
 import {
   getQ1Level,
@@ -12,36 +15,9 @@ import {
 import { useProgressStore } from '../../../../../store/progressStore';
 import { useUserStore } from '../../../../../store/userStore';
 
-const COLORS = {
-  bg: '#0F172A',
-  card: '#1E293B',
-  text: '#F8FAFC',
-  muted: '#94A3B8',
-  accent: '#6366F1',
-  logBg: '#334155',
-};
-
 function normalizeParam(p: string | string[] | undefined): string {
   if (p === undefined) return '';
   return Array.isArray(p) ? p[0] : p;
-}
-
-interface LOGBubbleProps {
-  text: string;
-}
-
-/** Bulle LOG : même idée visuelle que le test de placement (unité pédagogique). */
-function LOGBubble({ text }: LOGBubbleProps) {
-  return (
-    <View style={styles.logRow}>
-      <View style={styles.logAvatar}>
-        <Text style={styles.logAvatarText}>LOG</Text>
-      </View>
-      <View style={styles.logBubble}>
-        <Text style={styles.logText}>{text}</Text>
-      </View>
-    </View>
-  );
 }
 
 export default function LevelScreen() {
@@ -55,6 +31,7 @@ export default function LevelScreen() {
   const levelId = normalizeParam(rawLevelId);
 
   const [hintUsed, setHintUsed] = useState(false);
+  const [logModalVisible, setLogModalVisible] = useState(false);
 
   useEffect(() => {
     setHintUsed(false);
@@ -121,6 +98,11 @@ export default function LevelScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <LOGModal
+        visible={logModalVisible}
+        concept={district?.concept ?? 'ce sujet'}
+        onClose={() => setLogModalVisible(false)}
+      />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.topBar}>
           <Pressable
@@ -131,6 +113,14 @@ export default function LevelScreen() {
           >
             <Text style={styles.backLabel}>‹ Quartier</Text>
           </Pressable>
+          <Pressable
+            onPress={() => setLogModalVisible(true)}
+            accessibilityLabel="Ouvrir Demande à LOG"
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.helpBtn, pressed && styles.helpPressed]}
+          >
+            <Text style={styles.helpLabel}>?</Text>
+          </Pressable>
         </View>
 
         <Text style={styles.screenTitle}>{level.title}</Text>
@@ -138,10 +128,17 @@ export default function LevelScreen() {
           <Text style={styles.districtMeta}>{district.name}</Text>
         ) : null}
 
-        {level.story ? <LOGBubble text={level.story} /> : null}
+        {level.story ? (
+          <LOGBubble
+            message={level.story}
+            mood="neutral"
+            animated
+            style={styles.logBubbleWrap}
+          />
+        ) : null}
 
         {level.mechanic === 'qcm' && level.answers ? (
-          <View style={styles.qcmCard}>
+          <View style={styles.qcmWrap}>
             <QCM
               key={level.id}
               question={level.question}
@@ -173,10 +170,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8,
   },
   backBtn: {
-    alignSelf: 'flex-start',
     paddingVertical: 8,
     paddingRight: 12,
   },
@@ -184,63 +183,47 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   backLabel: {
-    color: COLORS.accent,
+    color: COLORS.neonPurple,
     fontSize: 16,
     fontWeight: '600',
   },
+  helpBtn: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+    backgroundColor: COLORS.bgCard,
+    borderWidth: 1,
+    borderColor: COLORS.trackOn,
+  },
+  helpPressed: {
+    opacity: 0.85,
+  },
+  helpLabel: {
+    color: COLORS.neonPurple,
+    fontSize: 20,
+    fontWeight: '800',
+  },
   screenTitle: {
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 4,
   },
   districtMeta: {
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 14,
     marginBottom: 20,
   },
-  logRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  logBubbleWrap: {
     marginBottom: 20,
   },
-  logAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  logAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  logBubble: {
-    flex: 1,
-    backgroundColor: COLORS.logBg,
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  logText: {
-    color: COLORS.text,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  qcmCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#334155',
+  qcmWrap: {
+    marginTop: 0,
   },
   fallback: {
-    color: COLORS.muted,
+    color: COLORS.textMuted,
     fontSize: 15,
   },
   errorWrap: {
@@ -249,21 +232,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   errorTitle: {
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 10,
     textAlign: 'center',
   },
   errorBody: {
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
     marginBottom: 24,
   },
   primaryBtn: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.neonPurple,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',

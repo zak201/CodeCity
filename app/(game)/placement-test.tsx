@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+import { LOGBubble } from '../../components/log/LOGBubble';
+import { COLORS } from '../../constants/colors';
 import {
   computePlacementLevel,
   getStartingDistrict,
@@ -18,6 +21,14 @@ import {
 import { districts } from '../../data/districts';
 import { useUserStore } from '../../store/userStore';
 import type { Answer, DifficultyLevel } from '../../types/game';
+
+const mono = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default: 'monospace',
+});
+
+const INCORRECT_RED = '#E24B4A';
 
 // ---------------------------------------------------------------------------
 // Répliques LOG pré-écrites
@@ -43,21 +54,6 @@ const LOG_RESULT: Record<DifficultyLevel, string> = {
   beginner: "Tu as l'intuition. Il reste à structurer.",
   intermediate: 'Bases solides. CodeCity a besoin de toi.',
   advanced: "Impressionnant. Je ne t'attendais pas à ce niveau.",
-};
-
-// ---------------------------------------------------------------------------
-// Couleurs réutilisées
-// ---------------------------------------------------------------------------
-
-const COLORS = {
-  bg: '#0F172A',
-  card: '#1E293B',
-  text: '#F8FAFC',
-  muted: '#94A3B8',
-  accent: '#6366F1',
-  correct: '#22C55E',
-  incorrect: '#EF4444',
-  logBg: '#334155',
 };
 
 // ---------------------------------------------------------------------------
@@ -94,23 +90,6 @@ function ProgressBar({ current, total }: ProgressBarProps) {
   );
 }
 
-interface LOGBubbleProps {
-  text: string;
-}
-
-function LOGBubble({ text }: LOGBubbleProps) {
-  return (
-    <View style={styles.logRow}>
-      <View style={styles.logAvatar}>
-        <Text style={styles.logAvatarText}>LOG</Text>
-      </View>
-      <View style={styles.logBubble}>
-        <Text style={styles.logText}>{text}</Text>
-      </View>
-    </View>
-  );
-}
-
 interface AnswerGridProps {
   answers: Answer[];
   feedback: FeedbackState | null;
@@ -122,13 +101,19 @@ function AnswerGrid({ answers, feedback, disabled, onSelect }: AnswerGridProps) 
   return (
     <View style={styles.grid}>
       {answers.map((answer) => {
-        let btnStyle = styles.answerBtn;
+        let borderColor: string = COLORS.neonPurple;
+        let textColor: string = COLORS.textSecondary;
+
         if (feedback) {
-          if (answer.id === feedback.selectedId && !feedback.isCorrect) {
-            btnStyle = { ...styles.answerBtn, ...styles.answerIncorrect };
-          }
           if (answer.isCorrect) {
-            btnStyle = { ...styles.answerBtn, ...styles.answerCorrect };
+            borderColor = COLORS.neonGreen;
+            textColor = COLORS.neonGreen;
+          } else if (
+            answer.id === feedback.selectedId &&
+            !feedback.isCorrect
+          ) {
+            borderColor = INCORRECT_RED;
+            textColor = INCORRECT_RED;
           }
         }
 
@@ -140,19 +125,12 @@ function AnswerGrid({ answers, feedback, disabled, onSelect }: AnswerGridProps) 
             accessibilityLabel={`Réponse : ${answer.label}`}
             accessibilityRole="button"
             style={({ pressed }) => [
-              btnStyle,
+              styles.answerBtn,
+              { borderColor },
               pressed && !disabled && styles.answerPressed,
             ]}
           >
-            <Text
-              style={[
-                styles.answerText,
-                feedback?.selectedId === answer.id &&
-                  !feedback.isCorrect &&
-                  styles.answerTextLight,
-                feedback && answer.isCorrect && styles.answerTextLight,
-              ]}
-            >
+            <Text style={[styles.answerText, { color: textColor }]}>
               {answer.label}
             </Text>
           </Pressable>
@@ -175,7 +153,11 @@ function ResultScreen({ level, onStart }: ResultScreenProps) {
     <View style={styles.resultContainer}>
       <Text style={styles.resultTitle}>Mission accomplie.</Text>
 
-      <LOGBubble text={LOG_RESULT[level]} />
+      <LOGBubble
+        message={LOG_RESULT[level]}
+        mood="neutral"
+        style={styles.logBubbleWrap}
+      />
 
       {district && (
         <View style={[styles.districtCard, { borderColor: district.color }]}>
@@ -352,7 +334,17 @@ export default function PlacementTestScreen() {
         <ProgressBar current={currentIndex + 1} total={totalDisplay} />
 
         <Animated.View style={{ opacity: fadeAnim }}>
-          <LOGBubble text={logMessage} />
+          <LOGBubble
+            message={logMessage}
+            mood={
+              logMessage === LOG_CORRECT
+                ? 'positive'
+                : logMessage === LOG_INCORRECT
+                  ? 'negative'
+                  : 'neutral'
+            }
+            style={styles.logBubbleWrap}
+          />
 
           <Text style={styles.questionText}>{question.text}</Text>
 
@@ -406,7 +398,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   backBtnText: {
-    color: COLORS.accent,
+    color: COLORS.neonPurple,
     fontSize: 28,
     fontWeight: '600',
   },
@@ -422,66 +414,39 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   progressLabel: {
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
     textAlign: 'center',
+    fontFamily: mono as string,
   },
   progressTrack: {
     height: 6,
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.trackOff,
     borderRadius: 3,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.trackOn,
   },
   progressFill: {
     height: 6,
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.neonPurple,
     borderRadius: 3,
   },
 
-  // Bulle LOG
-  logRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  logBubbleWrap: {
     marginBottom: 24,
-  },
-  logAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  logAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  logBubble: {
-    flex: 1,
-    backgroundColor: COLORS.logBg,
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  logText: {
-    color: COLORS.text,
-    fontSize: 15,
-    lineHeight: 22,
   },
 
   // Question
   questionText: {
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 26,
     marginBottom: 24,
+    fontFamily: mono as string,
   },
 
   // Grille réponses 2×2
@@ -495,41 +460,30 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: '45%',
     minHeight: 48,
-    backgroundColor: COLORS.card,
+    backgroundColor: 'transparent',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
   },
   answerPressed: {
-    opacity: 0.8,
-  },
-  answerCorrect: {
-    backgroundColor: COLORS.correct,
-    borderColor: COLORS.correct,
-  },
-  answerIncorrect: {
-    backgroundColor: COLORS.incorrect,
-    borderColor: COLORS.incorrect,
+    opacity: 0.85,
   },
   answerText: {
-    color: COLORS.text,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
-  },
-  answerTextLight: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    fontFamily: mono as string,
   },
 
   // Bouton Suivant (mauvaise réponse)
   nextBtn: {
     marginTop: 20,
-    backgroundColor: COLORS.accent,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.neonPurple,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -539,9 +493,10 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   nextBtnText: {
-    color: '#FFFFFF',
+    color: COLORS.textSecondary,
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: mono as string,
   },
 
   // Écran résultat
@@ -551,16 +506,18 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   resultTitle: {
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     fontSize: 28,
     fontWeight: '800',
     textAlign: 'center',
     marginBottom: 24,
+    fontFamily: mono as string,
   },
   districtCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.bgCard,
     borderRadius: 16,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderColor: COLORS.trackOn,
     paddingHorizontal: 20,
     paddingVertical: 18,
     alignItems: 'center',
@@ -568,21 +525,25 @@ const styles = StyleSheet.create({
     marginBottom: 36,
   },
   districtName: {
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 4,
+    fontFamily: mono as string,
   },
   districtConcept: {
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 14,
+    fontFamily: mono as string,
   },
   startBtn: {
-    backgroundColor: COLORS.correct,
+    backgroundColor: COLORS.neonGreen,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     minHeight: 52,
+    borderWidth: 1,
+    borderColor: COLORS.trackOn,
   },
   startBtnPressed: {
     opacity: 0.85,

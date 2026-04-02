@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { COLORS } from '../../constants/colors';
 import type { Answer } from '../../types/game';
+
+const mono = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default: 'monospace',
+});
+
+const INCORRECT_RED = '#E24B4A';
 
 export interface QCMProps {
   question: string;
@@ -22,16 +32,6 @@ export interface QCMProps {
 
 type Phase = 'idle' | 'answered';
 
-const COLORS = {
-  bgCard: '#1E293B',
-  text: '#F8FAFC',
-  muted: '#94A3B8',
-  correct: '#22C55E',
-  incorrect: '#EF4444',
-  hint: '#6366F1',
-  border: '#334155',
-};
-
 export function QCM({
   question,
   answers,
@@ -45,9 +45,11 @@ export function QCM({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hintVisible, setHintVisible] = useState(false);
   const [hintConsumed, setHintConsumed] = useState(false);
+  const [flashForId, setFlashForId] = useState<string | null>(null);
 
   const explainOpacity = useRef(new Animated.Value(0)).current;
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashOpacity = useRef(new Animated.Value(0)).current;
 
   const clearTimer = useCallback(() => {
     if (completeTimerRef.current !== null) {
@@ -67,10 +69,33 @@ export function QCM({
     }).start();
   }, [explainOpacity]);
 
+  const runSelectionFlash = useCallback(
+    (answerId: string) => {
+      setFlashForId(answerId);
+      flashOpacity.setValue(0);
+      Animated.sequence([
+        Animated.timing(flashOpacity, {
+          toValue: 1,
+          duration: 60,
+          useNativeDriver: true,
+        }),
+        Animated.timing(flashOpacity, {
+          toValue: 0,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) setFlashForId(null);
+      });
+    },
+    [flashOpacity]
+  );
+
   const handleAnswerPress = useCallback(
     (answer: Answer) => {
       if (phase !== 'idle') return;
 
+      runSelectionFlash(answer.id);
       setSelectedId(answer.id);
       setPhase('answered');
       showExplanation();
@@ -83,7 +108,7 @@ export function QCM({
         }, 1200);
       }
     },
-    [phase, onCorrect, onComplete, showExplanation]
+    [phase, onCorrect, onComplete, showExplanation, runSelectionFlash]
   );
 
   const handleContinue = useCallback(() => {
@@ -118,53 +143,72 @@ export function QCM({
             style={({ pressed }) => [
               styles.hintBtn,
               (hintConsumed || answersDisabled) && styles.hintBtnDisabled,
-              pressed && !hintConsumed && !answersDisabled && styles.hintBtnPressed,
+              pressed &&
+                !hintConsumed &&
+                !answersDisabled &&
+                styles.hintBtnPressed,
             ]}
           >
             <Text style={styles.hintBtnText}>?</Text>
           </Pressable>
-          {hintVisible && (
-            <Text style={styles.hintText}>{hint}</Text>
-          )}
+          {hintVisible ? <Text style={styles.hintText}>{hint}</Text> : null}
         </View>
       ) : null}
 
       <View style={styles.grid}>
         {answers.map((answer) => {
-          let boxStyle = styles.answerBtn;
+          let borderColor: string = COLORS.trackOn;
+          let textColor: string = COLORS.textSecondary;
+          let backgroundColor: string = 'transparent';
+
           if (phase === 'answered') {
-            if (answer.id === selectedId && !answer.isCorrect) {
-              boxStyle = { ...styles.answerBtn, ...styles.answerWrong };
-            }
             if (answer.isCorrect) {
-              boxStyle = { ...styles.answerBtn, ...styles.answerRight };
+              borderColor = COLORS.neonGreen;
+              textColor = COLORS.neonGreen;
+            }
+            if (answer.id === selectedId && !answer.isCorrect) {
+              borderColor = INCORRECT_RED;
+              textColor = INCORRECT_RED;
             }
           }
 
+          const showFlash = flashForId === answer.id;
+
           return (
-            <Pressable
-              key={answer.id}
-              onPress={() => handleAnswerPress(answer)}
-              disabled={answersDisabled}
-              accessibilityLabel={`Réponse : ${answer.label}`}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                boxStyle,
-                pressed && !answersDisabled && styles.answerPressed,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.answerText,
-                  phase === 'answered' &&
-                    (answer.isCorrect ||
-                      (answer.id === selectedId && !answer.isCorrect)) &&
-                    styles.answerTextOnColor,
+            <View key={answer.id} style={styles.answerCell}>
+              <Pressable
+                onPress={() => handleAnswerPress(answer)}
+                disabled={answersDisabled}
+                accessibilityLabel={`Réponse : ${answer.label}`}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.answerBtn,
+                  {
+                    borderColor,
+                    backgroundColor,
+                  },
+                  pressed && !answersDisabled && styles.answerPressed,
                 ]}
               >
-                {answer.label}
-              </Text>
-            </Pressable>
+                {showFlash ? (
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.flashOverlay,
+                      {
+                        opacity: flashOpacity.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 0.55],
+                        }),
+                      },
+                    ]}
+                  />
+                ) : null}
+                <Text style={[styles.answerText, { color: textColor }]}>
+                  {answer.label}
+                </Text>
+              </Pressable>
+            </View>
           );
         })}
       </View>
@@ -175,7 +219,7 @@ export function QCM({
         </Animated.View>
       ) : null}
 
-      {isWrong && (
+      {isWrong ? (
         <Pressable
           onPress={handleContinue}
           accessibilityLabel="Continuer"
@@ -187,7 +231,7 @@ export function QCM({
         >
           <Text style={styles.continueBtnText}>Continuer</Text>
         </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -195,13 +239,19 @@ export function QCM({
 const styles = StyleSheet.create({
   wrapper: {
     width: '100%',
+    backgroundColor: COLORS.bgCard,
+    borderWidth: 1,
+    borderColor: COLORS.trackOn,
+    borderRadius: 14,
+    padding: 18,
   },
   question: {
-    color: COLORS.text,
+    color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 26,
     marginBottom: 16,
+    fontFamily: mono as string,
   },
   hintRow: {
     flexDirection: 'row',
@@ -216,7 +266,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.hint,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.trackOn,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -227,70 +279,68 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   hintBtnText: {
-    color: '#FFFFFF',
+    color: COLORS.neonPurple,
     fontSize: 18,
     fontWeight: '800',
+    fontFamily: mono as string,
   },
   hintText: {
     flex: 1,
     minWidth: 120,
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 14,
     lineHeight: 20,
+    fontFamily: mono as string,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
-  answerBtn: {
+  answerCell: {
     flexGrow: 1,
     flexBasis: '45%',
     minWidth: '40%',
+  },
+  answerBtn: {
     minHeight: 48,
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 14,
-    borderWidth: 2,
-    borderColor: COLORS.border,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  flashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.neonPurple,
   },
   answerPressed: {
-    opacity: 0.88,
-  },
-  answerRight: {
-    backgroundColor: COLORS.correct,
-    borderColor: COLORS.correct,
-  },
-  answerWrong: {
-    backgroundColor: COLORS.incorrect,
-    borderColor: COLORS.incorrect,
+    opacity: 0.92,
   },
   answerText: {
-    color: COLORS.text,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
-  },
-  answerTextOnColor: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    fontFamily: mono as string,
   },
   explainWrap: {
     marginTop: 20,
   },
   explainText: {
-    color: COLORS.muted,
+    color: COLORS.textSecondary,
     fontSize: 15,
     lineHeight: 22,
+    fontFamily: mono as string,
   },
   continueBtn: {
     marginTop: 20,
     minHeight: 48,
-    backgroundColor: COLORS.hint,
+    backgroundColor: COLORS.trackOn,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neonPurple,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -299,8 +349,9 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
   continueBtnText: {
-    color: '#FFFFFF',
+    color: COLORS.textPrimary,
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: mono as string,
   },
 });
