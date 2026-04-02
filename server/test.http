@@ -1,6 +1,6 @@
 # CodeCity API — VS Code REST Client
-# Variables : adapte @host si le port 3000 est déjà pris (ex. Docker) → mets PORT dans server/.env
-@host = http://localhost:3000
+# Doit correspondre à PORT dans server/.env (défaut local : 3050 si Docker tient le 3000).
+@host = http://localhost:3050
 # ID du premier user du seed (CodeArchitect01), ordre createdAt asc — à mettre à jour après un `prisma migrate reset`
 @firstUserId = cmnhhb2kk00007hq402pwinkj
 # Ré-exécution du POST ### 3 sans reset → 409 si « TestArchi » existe déjà ; change le username.
