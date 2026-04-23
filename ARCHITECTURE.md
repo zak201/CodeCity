@@ -10,6 +10,13 @@
 
 **Public cible :** Débutants complets, aucun prérequis technique. Sessions de 5 à 15 minutes par jour.
 
+### Méthodologie de conception
+
+- **Itérations courtes** : livrer des lots utilisables (carte → sélection de quartier → niveau QCM) plutôt que d’attendre le jeu complet.
+- **Spécification par les données** : niveaux et questions dans `data/` pour faire évoluer le contenu sans retoucher en profondeur les écrans.
+- **API-first pour le socle** : modèle Prisma et routes REST testables (`server/test.http`) avant couplage fort avec l’app mobile.
+- **Prototype sur device** : Expo Go pour valider parcours, lisibilité et zones tactiles (≥ 44 px) avec de vrais usages.
+
 ---
 
 ## 2. Environnement de développement
@@ -110,7 +117,7 @@ Gestion du state global. Léger, sans boilerplate Redux. Trois stores :
 - `progressStore` — avancement par quartier/niveau
 - `streakStore` — streak quotidien
 
-Tous les stores sont persistés via `AsyncStorage` (équivalent mobile de localStorage).
+Les stores sont en mémoire côté app ; la persistance via `AsyncStorage` (équivalent mobile de localStorage) est prévue pour conserver profil et progression entre sessions sans dépendre uniquement du backend.
 
 **React Native Reanimated 2**
 Animations performantes exécutées sur le thread UI natif (pas sur le thread JS), indispensable pour les mécaniques Drag & Drop fluides.
@@ -192,13 +199,13 @@ Le MVP couvre les fonctionnalités minimales pour valider le concept avec de vra
 
 | Fonctionnalité | Description | Statut |
 |---|---|---|
-| Test de placement | 8 questions → détermine le quartier de départ | 🔄 En cours |
-| Profil utilisateur | Création de compte, XP, niveau | ✅ Store prêt |
-| Carte de la ville | Affichage des quartiers Q1-Q2 débloqués | 🔄 En cours |
-| Quartier Q1 complet | 15 niveaux sur les Variables | 🔄 En cours |
-| Mécanique QCM | Question + 4 choix + feedback | 🔄 En cours |
-| Mécanique Drag & Drop | Glisser les bons éléments | 🔄 En cours |
-| LOG statique | Bulles de dialogue pré-écrites | 🔄 En cours |
+| Test de placement | 8 questions → détermine le quartier de départ | ✅ Écran implémenté |
+| Profil utilisateur | Création de compte, XP, niveau | ✅ Store prêt (UI / API à finaliser) |
+| Carte de la ville | Affichage des quartiers, états débloqué / verrouillé | ✅ `map.tsx` |
+| Quartier Q1 complet | 15 niveaux sur les Variables | 🔄 Contenu + parcours en cours |
+| Mécanique QCM | Question + 4 choix + feedback | ✅ Composant + intégration niveau |
+| Mécanique Drag & Drop | Glisser les bons éléments | ⏳ Non commencé |
+| LOG statique | Bulles de dialogue pré-écrites | ✅ Bulles + modal MVP |
 | Streak quotidien | Flamme + compteur de jours consécutifs | ✅ Store prêt |
 | API REST | CRUD users + progression | ✅ Fonctionnel |
 
