@@ -166,9 +166,3 @@ export function getQ1LevelIdsInOrder(): string[] {
     .sort((a, b) => a.order - b.order)
     .map((l) => l.id);
 }
-
-/** Point d’extension : autres districts renverront leurs niveaux plus tard. */
-export function getLevelsForDistrict(districtId: string): Level[] {
-  if (districtId === 'q1') return q1VariablesLevels;
-  return [];
-}

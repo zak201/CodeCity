@@ -8,10 +8,12 @@ import { LOGBubble } from '../../../../../components/log/LOGBubble';
 import { LOGModal } from '../../../../../components/log/LOGModal';
 import { COLORS } from '../../../../../constants/colors';
 import { districts } from '../../../../../data/districts';
+import { getChapterTitle } from '../../../../../data/levels/chapterTitles';
 import {
-  getQ1Level,
-  getQ1LevelIdsInOrder,
-} from '../../../../../data/levels/q1-variables';
+  getLevelForDistrict,
+  getLevelIdsInOrderForDistrict,
+  isDistrictWithLevels,
+} from '../../../../../data/levels/registry';
 import { useProgressStore } from '../../../../../store/progressStore';
 import { useUserStore } from '../../../../../store/userStore';
 
@@ -40,16 +42,15 @@ export default function LevelScreen() {
   const completeLevel = useProgressStore((s) => s.actions.completeLevel);
   const addXP = useUserStore((s) => s.actions.addXP);
 
-  const level =
-    districtId === 'q1' ? getQ1Level(levelId) : undefined;
+  const level = getLevelForDistrict(districtId, levelId);
 
   const district = districts.find((d) => d.id === districtId);
-  const invalidDistrict = districtId !== 'q1';
+  const invalidDistrict = !isDistrictWithLevels(districtId);
   const notFound = !level;
 
   const goNextOrDistrict = useCallback(() => {
     if (!level) return;
-    const ordered = getQ1LevelIdsInOrder();
+    const ordered = getLevelIdsInOrderForDistrict(districtId);
     const idx = ordered.indexOf(level.id);
     const nextId = idx >= 0 ? ordered[idx + 1] : undefined;
     if (nextId) {
@@ -124,6 +125,10 @@ export default function LevelScreen() {
         </View>
 
         <Text style={styles.screenTitle}>{level.title}</Text>
+        <Text style={styles.chapterLine}>
+          Chapitre {level.chapter} —{' '}
+          {getChapterTitle(districtId, level.chapter)}
+        </Text>
         {district ? (
           <Text style={styles.districtMeta}>{district.name}</Text>
         ) : null}
@@ -210,6 +215,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 4,
+  },
+  chapterLine: {
+    color: COLORS.neonPurple,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   districtMeta: {
     color: COLORS.textSecondary,

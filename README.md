@@ -12,7 +12,7 @@ Jeu mobile éducatif qui apprend l'algorithmique aux débutants complets, à tra
 |---|---|
 | Mobile | React Native + Expo SDK 54 |
 | Navigation | Expo Router (file-based) |
-| State | Zustand + AsyncStorage |
+| State | Zustand (persistance AsyncStorage / device prévue pour la prod) |
 | Backend | Express.js + Prisma |
 | Base de données | SQLite (dev) → PostgreSQL/Supabase (prod) |
 | IA (LOG) | Claude API — Anthropic |
@@ -224,13 +224,15 @@ Retour après pause → "Bon retour. CodeCity t'attendait."
 ### MVP (en cours)
 - [x] Structure du projet + stack configurée
 - [x] Types TypeScript globaux
-- [x] Données : districts, test de placement, Q1
+- [x] Données : districts, test de placement, registre des niveaux (Q1–Q7 + chapitres)
 - [x] Stores Zustand (user, progress, streak)
 - [x] Backend API REST (Express + Prisma + SQLite)
-- [ ] Écran test de placement
-- [ ] Carte de la ville (Q1-Q2 débloqués)
-- [ ] Mécaniques de jeu : QCM, Drag & Drop
-- [ ] Composant LOG (bulles, dialogues)
+- [x] Écran test de placement (`app/(game)/placement-test.tsx`)
+- [x] Carte de la ville + navigation quartiers (`map.tsx`, `district/[id]/`)
+- [x] Mécanique QCM + écran niveau end-to-end (`components/game/QCM.tsx`, `level/[levelId].tsx`)
+- [x] Composant LOG (bulles, modal) — répliques statiques MVP
+- [ ] Mécanique Drag & Drop (et autres types de puzzles)
+- [ ] Branchement complet app ↔ API (création user / sync progression)
 
 ### V1.0
 - [ ] Quartiers Q1 à Q4 complets

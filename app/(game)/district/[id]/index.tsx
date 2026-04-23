@@ -2,9 +2,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { LOGBubble } from '../../../../components/log/LOGBubble';
 import { COLORS } from '../../../../constants/colors';
 import { districts } from '../../../../data/districts';
-import { getLevelsForDistrict } from '../../../../data/levels/q1-variables';
+import { getLevelsForDistrict } from '../../../../data/levels/registry';
 
 function normalizeParam(p: string | string[] | undefined): string {
   if (p === undefined) return '';
@@ -39,6 +40,15 @@ export default function DistrictScreen() {
         </Text>
         {district ? (
           <Text style={styles.subtitle}>{district.concept}</Text>
+        ) : null}
+
+        {district?.story ? (
+          <LOGBubble
+            message={district.story}
+            mood="mysterious"
+            animated
+            style={styles.storyBubble}
+          />
         ) : null}
 
         {isEmpty ? (
@@ -122,6 +132,9 @@ const styles = StyleSheet.create({
   subtitle: {
     color: COLORS.textSecondary,
     fontSize: 15,
+    marginBottom: 16,
+  },
+  storyBubble: {
     marginBottom: 24,
   },
   list: {
