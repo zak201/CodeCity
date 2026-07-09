@@ -70,8 +70,19 @@ progressRouter.post('/', async (req, res, next) => {
       return;
     }
 
-    const progress = await prisma.userProgress.create({
-      data: {
+    const progress = await prisma.userProgress.upsert({
+      where: {
+        userId_levelId: {
+          userId: userId.trim(),
+          levelId: levelId.trim(),
+        },
+      },
+      update: {
+        stars: starsNum,
+        districtId: districtId.trim(),
+        completedAt: new Date(),
+      },
+      create: {
         userId: userId.trim(),
         districtId: districtId.trim(),
         levelId: levelId.trim(),

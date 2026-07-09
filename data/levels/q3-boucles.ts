@@ -31,20 +31,22 @@ export const q3BouclesLevels: Level[] = [
     districtId: 'q3',
     chapter: 1,
     order: 2,
-    mechanic: 'qcm',
+    mechanic: 'prediction',
     title: 'Compter les tours',
-    question:
-      'for i de 1 à 3 (inclus) — combien de fois le corps de la boucle s’exécute-t-il en général ?',
+    code: `for i de 1 à 3:
+  afficher(i)`,
+    question: 'Qu’affiche ce code ?',
     answers: [
-      { id: 'q3-c1-l02-a', label: '3 fois', isCorrect: true },
-      { id: 'q3-c1-l02-b', label: '2 fois', isCorrect: false },
-      { id: 'q3-c1-l02-c', label: '4 fois', isCorrect: false },
-      { id: 'q3-c1-l02-d', label: 'Une infinite de fois', isCorrect: false },
+      { id: 'q3-c1-l02-a', label: '1 2 3', isCorrect: true },
+      { id: 'q3-c1-l02-b', label: '1 2', isCorrect: false },
+      { id: 'q3-c1-l02-c', label: '1 2 3 4', isCorrect: false },
+      { id: 'q3-c1-l02-d', label: '3', isCorrect: false },
     ],
     correctAnswer: 'q3-c1-l02-a',
     explanation:
-      'De 1 à 3 inclus, la boucle parcourt trois valeurs : trois itérations.',
+      'De 1 à 3 inclus, la boucle affiche i à chaque tour : 1, puis 2, puis 3.',
     xpReward: 10,
+    hint: 'Écris la valeur de i à chaque passage : premier tour i vaut 1…',
   },
   {
     id: 'q3-c1-l03',

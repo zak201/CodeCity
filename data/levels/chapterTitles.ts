@@ -1,5 +1,10 @@
 /** Titres de chapitre par quartier (affichage narratif). */
 const TITLES: Record<string, Record<number, string>> = {
+  q1: {
+    1: 'Découvrir les variables',
+    2: 'Manipuler les valeurs',
+    3: 'Types et conversions',
+  },
   q2: {
     1: 'La machine qui décide',
     2: 'Les carrefours complexes',
@@ -30,18 +35,17 @@ const TITLES: Record<string, Record<number, string>> = {
     2: 'Applications',
     3: '',
   },
+  boss: {
+    1: 'La Tour Centrale',
+    2: '',
+    3: '',
+  },
 };
-
-/** Q1 : chapitre unique dans les données actuelles ; titre générique. */
-const Q1_FALLBACK = 'Variables et données';
 
 export function getChapterTitle(
   districtId: string,
   chapter: 1 | 2 | 3
 ): string {
-  if (districtId === 'q1') {
-    return Q1_FALLBACK;
-  }
   const row = TITLES[districtId];
   const t = row?.[chapter];
   if (t && t.length > 0) return t;

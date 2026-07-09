@@ -86,7 +86,7 @@ export const districts: District[] = [
       'Le cœur de CodeCity pulse encore, mais le bug s’y est enfoui. Tout ce que tu as appris devra s’assembler en une seule mission.',
     icon: 'tower',
     color: '#212529',
-    totalLevels: 1,
+    totalLevels: 5,
     isLocked: true,
   },
 ];

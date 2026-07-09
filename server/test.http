@@ -30,13 +30,15 @@ GET {{host}}/api/progress/{{firstUserId}}
 GET {{host}}/api/progress/id-qui-nexiste-pas
 
 ### 7 - Enregistrer un niveau complété
+# Upsert sur (userId, levelId) : ré-exécuter avec le même levelId met à jour
+# stars/districtId/completedAt au lieu de créer un doublon (toujours 201).
 POST {{host}}/api/progress
 Content-Type: application/json
 
 {
   "userId": "{{firstUserId}}",
   "districtId": "q1",
-  "levelId": "q1-l1",
+  "levelId": "q1-c1-l01",
   "stars": 3
 }
 
@@ -45,3 +47,26 @@ POST {{host}}/api/progress
 Content-Type: application/json
 
 {}
+
+### 9 - Ping santé de l'API
+GET {{host}}/api/health
+
+### 10 - Mise à jour partielle d'un user (xp / level / placementLevel)
+PATCH {{host}}/api/users/{{firstUserId}}
+Content-Type: application/json
+
+{
+  "xp": 300,
+  "level": 5,
+  "placementLevel": "intermediate"
+}
+
+### 11 - Synchroniser le streak d'un user (upsert)
+PUT {{host}}/api/users/{{firstUserId}}/streak
+Content-Type: application/json
+
+{
+  "currentStreak": 6,
+  "longestStreak": 12,
+  "lastPlayedDate": "2026-07-09T00:00:00.000Z"
+}

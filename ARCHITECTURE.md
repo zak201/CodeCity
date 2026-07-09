@@ -97,18 +97,16 @@ Système de navigation basé sur la structure des fichiers (file-based routing),
 
 ```
 app/
-├── _layout.tsx          → Layout racine (SafeAreaProvider, Stack)
-├── index.tsx            → Redirection vers /(game)/
-├── (auth)/
-│   ├── login.tsx        → /login
-│   └── onboarding.tsx   → /onboarding
+├── _layout.tsx                 → Layout racine
+├── index.tsx                   → Redirection welcome ou map selon placement
 └── (game)/
-    ├── _layout.tsx      → Layout du jeu
-    ├── index.tsx        → /game (carte de la ville)
-    ├── placement-test.tsx
+    ├── _layout.tsx             → Stack jeu (header masqué)
+    ├── welcome.tsx             → Accueil CRT + intro LOG
+    ├── map.tsx                 → Carte SVG des quartiers
+    ├── placement-test.tsx      → Test de placement (8 questions)
     └── district/[id]/
-        ├── index.tsx    → /game/district/q1
-        └── level/[levelId].tsx
+        ├── index.tsx           → Liste des niveaux du quartier
+        └── level/[levelId].tsx → Niveau (QCM, LOG, progression locale)
 ```
 
 **Zustand**
@@ -117,10 +115,10 @@ Gestion du state global. Léger, sans boilerplate Redux. Trois stores :
 - `progressStore` — avancement par quartier/niveau
 - `streakStore` — streak quotidien
 
-Les stores sont en mémoire côté app ; la persistance via `AsyncStorage` (équivalent mobile de localStorage) est prévue pour conserver profil et progression entre sessions sans dépendre uniquement du backend.
+La persistance est assurée par le middleware `persist` de Zustand adossé à `AsyncStorage` (équivalent mobile de localStorage) : profil, progression et streak sont conservés entre les sessions sans dépendre du backend. Une garde d'hydratation (`_hasHydrated` dans `userStore`) évite tout flash de redirection au démarrage.
 
-**React Native Reanimated 2**
-Animations performantes exécutées sur le thread UI natif (pas sur le thread JS), indispensable pour les mécaniques Drag & Drop fluides.
+**React Native Reanimated**
+Animations sur le thread UI natif (effets sur la carte, halos, etc.). Les futures mécaniques type drag-and-drop s’appuieront sur la même stack.
 
 ### Backend — API REST
 
@@ -168,26 +166,9 @@ SQLite est utilisé en local pour sa simplicité (pas de serveur à lancer). La 
 
 ### Service IA — LOG
 
-LOG, l'IA tutrice du jeu, est alimentée par **Claude API** (Anthropic, modèle `claude-sonnet-4-20250514`). Toutes les interactions passent par le wrapper `lib/claude.ts` — jamais d'appel direct à l'API dans les composants.
+**État actuel (MVP) :** les réponses de LOG proviennent d'une **base de connaissances locale** centralisée dans `lib/claude.ts` (mots-clés → explication par concept), consommée par `components/log/*`. Aucun appel réseau.
 
-```typescript
-// lib/claude.ts
-export async function askLOG(question: string, concept: string): Promise<string> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 300,
-      system: `Tu es LOG, IA tutrice de CodeCity. Tu aides des débutants.
-               Analogies simples. Maximum 3 phrases. Concept actuel : ${concept}`,
-      messages: [{ role: 'user', content: question }]
-    })
-  })
-  const data = await response.json()
-  return data.content[0].text
-}
-```
+**Cible V1 :** intégration **Claude API** (Anthropic). Les appels réseau seront centralisés dans un module dédié (`lib/claude.ts`, à ajouter) — jamais directement depuis les composants d’écran.
 
 ---
 
@@ -202,19 +183,25 @@ Le MVP couvre les fonctionnalités minimales pour valider le concept avec de vra
 | Test de placement | 8 questions → détermine le quartier de départ | ✅ Écran implémenté |
 | Profil utilisateur | Création de compte, XP, niveau | ✅ Store prêt (UI / API à finaliser) |
 | Carte de la ville | Affichage des quartiers, états débloqué / verrouillé | ✅ `map.tsx` |
-| Quartier Q1 complet | 15 niveaux sur les Variables | 🔄 Contenu + parcours en cours |
+| Quartier Q1 complet | 15 niveaux sur les Variables (3 chapitres) | ✅ Contenu + parcours complets |
+| Déblocage des quartiers | Dérivé du placement + progression (`data/progression.ts`) | ✅ Dynamique, en chaîne |
+| Persistance locale | Profil, progression, streak entre sessions | ✅ AsyncStorage (Zustand persist) |
 | Mécanique QCM | Question + 4 choix + feedback | ✅ Composant + intégration niveau |
-| Mécanique Drag & Drop | Glisser les bons éléments | ⏳ Non commencé |
+| Mécaniques de jeu | QCM, prédiction, remise en ordre, glisser-déposer | ✅ 4 mécaniques (`components/game/*`) |
+| Boss final | Tour Centrale, 5 niveaux à mécaniques mixtes | ✅ `data/levels/boss.ts` |
+| Badges + victoire | 1 badge/quartier, écran de fin animé | ✅ dérivés de la progression |
 | LOG statique | Bulles de dialogue pré-écrites | ✅ Bulles + modal MVP |
-| Streak quotidien | Flamme + compteur de jours consécutifs | ✅ Store prêt |
-| API REST | CRUD users + progression | ✅ Fonctionnel |
+| Streak quotidien | Flamme + compteur | ✅ Store + affichage dans l’en-tête de la carte |
+| API REST | Utilisateurs (CRUD partiel) + progression + streak | ✅ Serveur testable **et branché** à l’app (best-effort, offline-first — `lib/api.ts`, `lib/sync.ts`) |
 
 ### Hors scope MVP
 - LOG IA (Claude API) → V1
 - Notifications push → V1
-- Quartiers Q3 à Q8 → V1/V2
+- Déblocage et parcours « produit » complets sur tous les quartiers (au-delà du périmètre carte actuel) → V1/V2
 - Monétisation → V2
 - Mode multijoueur → V2
+
+*Note : des fichiers de données de niveaux existent déjà pour plusieurs quartiers (`data/levels/`) ; le jeu MVP se concentre surtout sur Q1–Q2 débloqués dans `districts.ts`.*
 
 ---
 
@@ -226,7 +213,7 @@ Le MVP couvre les fonctionnalités minimales pour valider le concept avec de vra
 Lancement app
      │
      ▼
-Onboarding (nom d'avatar)
+Accueil (`welcome`) — intro LOG (pas de création de compte in-app à ce stade)
      │
      ▼
 Test de placement LOG (8 questions)
@@ -241,26 +228,26 @@ Carte de CodeCity (districts)
 Sélection d'un niveau
      │
      ▼
-Gameplay (QCM / Drag&Drop / Prédiction)
+Gameplay (**QCM** implémenté ; Drag & Drop / prédiction → prévus)
      │
      ├── Bonne réponse → Feedback vert → Niveau suivant
      └── Mauvaise réponse → Explication → Réessayer
           │
           ▼
-     Fin de quartier → Cinématique texte → Badge
+     Fin de quartier → *(cinématique / badges : objectifs V1+, non implémentés)*
 ```
 
 ### Écrans MVP identifiés
 
-1. **Onboarding** — choix du nom d'avatar, intro narrative de LOG
+1. **Accueil** — marque CODECITY, effet CRT/scanlines, intro LOG, accès test ou carte (`welcome.tsx`)
 2. **Test de placement** — 8 questions, barre de progression, feedback immédiat
 3. **Résultat placement** — niveau attribué, réplique LOG, CTA "Commencer"
 4. **Carte de la ville** — districts avec état (débloqué / verrouillé / en cours / complété)
 5. **Vue quartier** — chapitres, niveaux, progression
 6. **Niveau QCM** — bulle LOG + question + 4 réponses
-7. **Niveau Drag & Drop** — zone source + zone cible
-8. **Feedback niveau** — étoiles obtenues, XP gagné, bouton suivant
-9. **Profil** — nom, level, XP, badges, streak
+7. **Niveau Drag & Drop** — *non implémenté* (maquette / V1)
+8. **Feedback niveau** — partie couverte dans l’écran niveau (étoiles selon indice, XP via store) ; pas d’écran dédié « récap » séparé
+9. **Profil dédié** — *non implémenté* ; XP et streak visibles sur la **carte** (`map.tsx`)
 
 ---
 
@@ -271,10 +258,11 @@ Gameplay (QCM / Drag&Drop / Prédiction)
 ```
 Règle : un fichier = une responsabilité
 
-components/   → Uniquement de l'UI, zéro logique métier
-hooks/        → Logique réutilisable (useLOG, useProgress, useStreak)
+components/   → Uniquement de l'UI, zéro logique métier lourde
 store/        → State global Zustand (userStore, progressStore, streakStore)
-lib/          → Clients externes (claude.ts, supabase.ts)
+constants/    → Palette et constantes UI partagées
+hooks/        → *(Dossier optionnel / à venir pour factoriser la logique réutilisable.)*
+lib/          → *(À créer : clients Claude, Supabase, etc.)*
 data/         → Données JSON du jeu (niveaux, questions, districts)
 types/        → Interfaces TypeScript globales
 ```
@@ -317,7 +305,7 @@ export function DistrictCard({ district, progress, onPress }: DistrictCardProps)
 
 - ❌ Pas de `any` en TypeScript
 - ❌ Pas de logique métier dans un composant
-- ❌ Pas d'appel Claude API hors `lib/claude.ts`
+- ❌ Pas d'appel Claude API dispersé dans l’UI (module `lib/claude.ts` une fois ajouté)
 - ❌ Pas de données de jeu en dur dans les composants
 - ✅ `accessibilityLabel` sur tous les éléments interactifs
 - ✅ Zones de touch ≥ 44px (standard Apple HIG)
@@ -366,7 +354,7 @@ Base URL (développement) : `http://localhost:3050/api`
 ### Frontend
 
 ```bash
-git clone https://github.com/[username]/CodeCity.git
+git clone https://github.com/zak201/CodeCity.git
 cd CodeCity
 npm install
 npx expo start

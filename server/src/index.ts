@@ -2,13 +2,19 @@ import './loadEnv';
 import express from 'express';
 import { usersRouter } from './routes/users';
 import { progressRouter } from './routes/progress';
+import { cors } from './middlewares/cors';
 import { errorHandler } from './middlewares/errorHandler';
 
 const app = express();
 // 3050 si absent du .env : évite le 3000 souvent pris (Docker, etc.)
 const PORT = Number(process.env.PORT) || 3050;
 
+app.use(cors);
 app.use(express.json());
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
 app.use('/api/users', usersRouter);
 app.use('/api/progress', progressRouter);

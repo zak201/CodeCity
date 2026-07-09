@@ -31,18 +31,16 @@ export const q6TriLevels: Level[] = [
     districtId: 'q6',
     chapter: 1,
     order: 2,
-    mechanic: 'qcm',
+    mechanic: 'drag-drop',
     title: 'Comparaison',
-    question: 'Pour trier par ordre croissant, la machine doit pouvoir :',
-    answers: [
-      { id: 'q6-c1-l02-a', label: 'Comparer deux éléments et savoir lequel doit venir avant', isCorrect: true },
-      { id: 'q6-c1-l02-b', label: 'Ignorer totalement les paires', isCorrect: false },
-      { id: 'q6-c1-l02-c', label: 'Toujours laisser le tableau vide', isCorrect: false },
-      { id: 'q6-c1-l02-d', label: 'Divider par zéro', isCorrect: false },
-    ],
-    correctAnswer: 'q6-c1-l02-a',
+    question:
+      'Complète la comparaison qui repère deux voisins mal rangés (le gauche plus grand que le droit).',
+    fillTemplate: 'si (tableau[i] ___ tableau[i + 1]) { echanger() }',
+    fillTokens: ['>', '<', '==', '>='],
+    fillSolution: ['>'],
+    correctAnswer: ['>'],
     explanation:
-      'Sans comparaison, impossible de savoir qui est « plus petit » ou « plus grand ».',
+      'En ordre croissant, si l’élément de gauche est plus grand (>) que celui de droite, la paire est mal rangée : on échange.',
     xpReward: 10,
   },
   {
@@ -50,18 +48,22 @@ export const q6TriLevels: Level[] = [
     districtId: 'q6',
     chapter: 1,
     order: 3,
-    mechanic: 'qcm',
+    mechanic: 'construction',
     title: 'Bubble (idée)',
-    question: 'Le tri à bulles fait souvent :',
-    answers: [
-      { id: 'q6-c1-l03-a', label: 'Repasser plusieurs fois pour échanger les voisins mal ordonnés jusqu’à ce qu’il n’y ait plus de swap', isCorrect: true },
-      { id: 'q6-c1-l03-b', label: 'Un seul passage suffit toujours', isCorrect: false },
-      { id: 'q6-c1-l03-c', label: 'Trie sans jamais comparer', isCorrect: false },
-      { id: 'q6-c1-l03-d', label: 'Divise le tableau en deux listes triées par magie', isCorrect: false },
+    question:
+      'Remets les étapes dans l’ordre pour échanger deux cases voisines à l’aide d’une variable temporaire.',
+    orderedLines: [
+      'temp = tableau[i]',
+      'tableau[i] = tableau[i + 1]',
+      'tableau[i + 1] = temp',
     ],
-    correctAnswer: 'q6-c1-l03-a',
+    correctAnswer: [
+      'temp = tableau[i]',
+      'tableau[i] = tableau[i + 1]',
+      'tableau[i + 1] = temp',
+    ],
     explanation:
-      'Les bulles « remontent » : on répète tant que des paires voisines sont encore dans le mauvais sens.',
+      'On met la première case de côté dans temp, on y copie la voisine, puis on place temp dans la voisine : les deux valeurs sont échangées sans se perdre.',
     xpReward: 10,
   },
   {
@@ -184,18 +186,22 @@ export const q6TriLevels: Level[] = [
     districtId: 'q6',
     chapter: 2,
     order: 10,
-    mechanic: 'qcm',
+    mechanic: 'prediction',
     title: 'Podium réparé',
-    question: '[4, 1, 3, 2] en ordre croissant strict donne :',
+    code: `tableau = [3, 1, 2]
+si (tableau[0] > tableau[1]):
+  echanger(tableau[0], tableau[1])
+afficher(tableau)`,
+    question: 'Quel est l’état du tableau après cette étape ?',
     answers: [
-      { id: 'q6-c2-l06-a', label: '[1, 2, 3, 4]', isCorrect: true },
-      { id: 'q6-c2-l06-b', label: '[4, 3, 2, 1]', isCorrect: false },
-      { id: 'q6-c2-l06-c', label: '[1, 3, 2, 4]', isCorrect: false },
-      { id: 'q6-c2-l06-d', label: '[2, 1, 4, 3]', isCorrect: false },
+      { id: 'q6-c2-l06-a', label: '[1, 3, 2]', isCorrect: true },
+      { id: 'q6-c2-l06-b', label: '[3, 1, 2]', isCorrect: false },
+      { id: 'q6-c2-l06-c', label: '[1, 2, 3]', isCorrect: false },
+      { id: 'q6-c2-l06-d', label: '[3, 2, 1]', isCorrect: false },
     ],
     correctAnswer: 'q6-c2-l06-a',
     explanation:
-      'Ordre croissant : du plus petit au plus grand.',
+      '3 est plus grand que 1, donc on échange les deux premières cases : [3, 1, 2] devient [1, 3, 2]. Une seule étape ne trie pas encore tout le tableau.',
     xpReward: 15,
   },
 ];

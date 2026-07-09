@@ -69,9 +69,13 @@ export const q4FonctionsLevels: Level[] = [
     districtId: 'q4',
     chapter: 1,
     order: 4,
-    mechanic: 'qcm',
+    mechanic: 'prediction',
     title: 'Valeur retournée',
-    question: 'fonction double(x) { return x * 2 }. double(7) vaut ?',
+    code: `fonction double(x) {
+  return x * 2
+}
+afficher(double(7))`,
+    question: 'Qu’affiche ce code ?',
     answers: [
       { id: 'q4-c1-l04-a', label: '14', isCorrect: true },
       { id: 'q4-c1-l04-b', label: '72', isCorrect: false },
@@ -80,7 +84,7 @@ export const q4FonctionsLevels: Level[] = [
     ],
     correctAnswer: 'q4-c1-l04-a',
     explanation:
-      'L’appel passe 7 ; le corps renvoie 7×2 = 14.',
+      'L’appel double(7) renvoie 7 × 2 = 14 ; afficher montre donc 14.',
     xpReward: 10,
   },
   {
@@ -108,18 +112,17 @@ export const q4FonctionsLevels: Level[] = [
     districtId: 'q4',
     chapter: 2,
     order: 6,
-    mechanic: 'qcm',
+    mechanic: 'drag-drop',
     title: 'Arguments',
-    question: 'fonction addition(a, b) { return a + b }. addition(3, 5) ?',
-    answers: [
-      { id: 'q4-c2-l02-a', label: '8', isCorrect: true },
-      { id: 'q4-c2-l02-b', label: '35', isCorrect: false },
-      { id: 'q4-c2-l02-c', label: '53', isCorrect: false },
-      { id: 'q4-c2-l02-d', label: '2', isCorrect: false },
-    ],
-    correctAnswer: 'q4-c2-l02-a',
+    question: 'Complète la fonction addition pour qu’elle renvoie la somme de a et b.',
+    fillTemplate: `fonction addition(a, b) {
+  return a ___ b
+}`,
+    fillTokens: ['+', '-', '*', '/'],
+    fillSolution: ['+'],
+    correctAnswer: ['+'],
     explanation:
-      '3 est passé en a, 5 en b ; la somme est 8.',
+      'Pour additionner deux valeurs, on utilise l’opérateur + : addition(3, 5) renvoie alors 8.',
     xpReward: 10,
   },
   {
@@ -204,18 +207,23 @@ export const q4FonctionsLevels: Level[] = [
     districtId: 'q4',
     chapter: 3,
     order: 11,
-    mechanic: 'qcm',
+    mechanic: 'construction',
     title: 'Récursion ? non ici',
-    question: 'Pour calculer le prix TTC sans boucle ni récursion, quelle structure est adaptée ?',
-    answers: [
-      { id: 'q4-c3-l03-a', label: 'Une fonction qui prend prix HT et taux et retourne HT × (1+taux)', isCorrect: true },
-      { id: 'q4-c3-l03-b', label: 'Uniquement un fichier image', isCorrect: false },
-      { id: 'q4-c3-l03-c', label: 'Une variable jamais utilisée', isCorrect: false },
-      { id: 'q4-c3-l03-d', label: 'Une boucle while obligatoire sur 1 million d’itérations', isCorrect: false },
+    question: 'Remets les lignes dans l’ordre pour une fonction qui calcule le prix TTC.',
+    orderedLines: [
+      'fonction ttc(ht, taux) {',
+      '  let total = ht * (1 + taux)',
+      '  return total',
+      '}',
     ],
-    correctAnswer: 'q4-c3-l03-a',
+    correctAnswer: [
+      'fonction ttc(ht, taux) {',
+      '  let total = ht * (1 + taux)',
+      '  return total',
+      '}',
+    ],
     explanation:
-      'Une formule simple dans une fonction suffit : c’est le cœur du « outil réutilisable ».',
+      'On ouvre la fonction, on calcule le total avec la formule HT × (1 + taux), on le retourne, puis on referme l’accolade.',
     xpReward: 10,
   },
   {

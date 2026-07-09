@@ -123,20 +123,18 @@ export const q2ConditionsLevels: Level[] = [
     districtId: 'q2',
     chapter: 1,
     order: 5,
-    mechanic: 'qcm',
+    mechanic: 'drag-drop',
     title: 'Test sur une variable',
     question:
-      "x = 10. si (x == 10) affiche 'Exact' — que s’affiche-t-il ?",
-    answers: [
-      { id: 'q2-c1-l05-a', label: 'Exact', isCorrect: true },
-      { id: 'q2-c1-l05-b', label: 'Rien', isCorrect: false },
-      { id: 'q2-c1-l05-c', label: 'Faux', isCorrect: false },
-      { id: 'q2-c1-l05-d', label: '10', isCorrect: false },
-    ],
-    correctAnswer: 'q2-c1-l05-a',
+      'x vaut 10. Complète la condition pour afficher « Exact » quand x est égal à 10.',
+    fillTemplate: 'si (x ___ 10) { afficher("Exact") }',
+    fillTokens: ['==', '=', '!=', '>'],
+    fillSolution: ['=='],
+    correctAnswer: ['=='],
     explanation:
-      'x vaut 10, donc (x == 10) est vrai : le message du bloc si s’affiche.',
+      'x vaut 10, donc (x == 10) est vrai : le message du bloc si s’affiche. On compare avec ==, pas avec = qui sert à assigner.',
     xpReward: 10,
+    hint: 'Comparer une égalité utilise deux signes égal, pas un seul.',
   },
   {
     id: 'q2-c2-l01',
