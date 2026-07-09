@@ -282,7 +282,10 @@ export default function PlacementTestScreen() {
 
   const handleStart = useCallback(() => {
     setPlacementLevel(computedLevel);
-    router.replace('/(game)/map');
+    // On emmène directement le joueur dans son quartier de départ assigné
+    // (ex. Avancé → Fonctions) plutôt que sur la carte.
+    const startDistrict = getStartingDistrict(computedLevel);
+    router.replace(`/(game)/district/${startDistrict}`);
   }, [computedLevel, setPlacementLevel, router]);
 
   const handleBack = useCallback(() => {
