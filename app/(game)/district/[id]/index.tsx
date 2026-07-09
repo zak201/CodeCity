@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { LOGBubble } from '../../../../components/log/LOGBubble';
-import { COLORS } from '../../../../constants/colors';
+import { useThemeColors } from '../../../../hooks/useThemeColors';
+import type { ThemePalette } from '../../../../constants/palette';
 import { districts } from '../../../../data/districts';
 import { getLevelsForDistrict } from '../../../../data/levels/registry';
 import { isDistrictUnlocked } from '../../../../data/progression';
@@ -16,6 +18,8 @@ function normalizeParam(p: string | string[] | undefined): string {
 }
 
 export default function DistrictScreen() {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = normalizeParam(rawId);
@@ -165,10 +169,10 @@ export default function DistrictScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: c.bg,
   },
   scroll: {
     paddingHorizontal: 20,
@@ -186,18 +190,18 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   backLabel: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 16,
     fontWeight: '600',
   },
   title: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 26,
     fontWeight: '800',
     marginBottom: 6,
   },
   subtitle: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 15,
     marginBottom: 16,
   },
@@ -210,77 +214,77 @@ const styles = StyleSheet.create({
   levelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
   },
   levelRowPressed: {
     opacity: 0.92,
   },
   /** Niveau déjà réussi : grisé, mais toujours rejouable. */
   levelRowDone: {
-    backgroundColor: COLORS.bg,
-    borderColor: COLORS.trackOff,
+    backgroundColor: c.bg,
+    borderColor: c.trackOff,
   },
   levelOrder: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 18,
     fontWeight: '800',
     width: 28,
   },
   levelOrderDone: {
-    color: COLORS.neonGreen,
+    color: c.neonGreen,
   },
   textDone: {
-    color: COLORS.textMuted,
+    color: c.textMuted,
   },
   stars: {
-    color: COLORS.neonAmber,
+    color: c.neonAmber,
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 1,
   },
   starsEmpty: {
-    color: COLORS.trackOff,
+    color: c.trackOff,
   },
   levelBody: {
     flex: 1,
     marginRight: 8,
   },
   levelTitle: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '700',
   },
   levelHint: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 13,
     marginTop: 4,
   },
   chev: {
-    color: COLORS.textMuted,
+    color: c.textMuted,
     fontSize: 22,
     fontWeight: '300',
   },
   emptyCard: {
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
   },
   emptyText: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 17,
     textAlign: 'center',
     marginBottom: 20,
   },
   primaryBtn: {
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,

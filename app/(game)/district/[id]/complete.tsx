@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { LOGBubble } from '../../../../components/log/LOGBubble';
-import { COLORS } from '../../../../constants/colors';
+import { useThemeColors } from '../../../../hooks/useThemeColors';
+import type { ThemePalette } from '../../../../constants/palette';
 import { districts } from '../../../../data/districts';
 import {
   getNextDistrictId,
@@ -20,6 +21,8 @@ function normalizeParam(p: string | string[] | undefined): string {
 }
 
 export default function DistrictCompleteScreen() {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = normalizeParam(rawId);
@@ -165,10 +168,10 @@ export default function DistrictCompleteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: c.bg,
   },
   body: {
     flex: 1,
@@ -180,21 +183,21 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderWidth: 2,
-    borderColor: COLORS.neonGreen,
+    borderColor: c.neonGreen,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
   },
   medalGold: {
-    borderColor: COLORS.neonAmber,
+    borderColor: c.neonAmber,
   },
   medalIcon: {
     fontSize: 40,
   },
   eyebrow: {
-    color: COLORS.neonGreen,
+    color: c.neonGreen,
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 2,
@@ -202,10 +205,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   eyebrowGold: {
-    color: COLORS.neonAmber,
+    color: c.neonAmber,
   },
   title: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 26,
     fontWeight: '800',
     textAlign: 'center',
@@ -216,24 +219,24 @@ const styles = StyleSheet.create({
   },
   badgeChip: {
     alignSelf: 'center',
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.neonAmber,
+    borderColor: c.neonAmber,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     marginBottom: 24,
   },
   badgeChipText: {
-    color: COLORS.neonAmber,
+    color: c.neonAmber,
     fontSize: 13,
     fontWeight: '700',
   },
   statsCard: {
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     paddingHorizontal: 20,
     paddingVertical: 16,
     marginBottom: 32,
@@ -245,16 +248,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   statLabel: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 15,
   },
   statValue: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '700',
   },
   primaryBtn: {
-    backgroundColor: COLORS.neonGreen,
+    backgroundColor: c.neonGreen,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
@@ -274,10 +277,10 @@ const styles = StyleSheet.create({
     minHeight: 52,
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.neonPurple,
+    borderColor: c.neonPurple,
   },
   secondaryBtnText: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 16,
     fontWeight: '700',
   },

@@ -12,14 +12,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Circle, G, Line, Text as SvgText } from 'react-native-svg';
 
-import { COLORS } from '../../constants/colors';
+import type { ThemePalette } from '../../constants/palette';
 import { districts } from '../../data/districts';
 import { computeLockState, getEarnedBadges } from '../../data/progression';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import { ensureUser, syncStreak } from '../../lib/sync';
 import { useProgressStore } from '../../store/progressStore';
 import { useStreakStore } from '../../store/streakStore';
+import { useThemeStore } from '../../store/themeStore';
 import { useUserStore } from '../../store/userStore';
 import type { District } from '../../types/game';
+
+/** Encre sombre pour un label posé sur un néon plein (lisible en jour ET nuit). */
+const ON_NEON = '#0B0A1E';
 
 /** Police monospace cohérente avec le reste de l’app. */
 const monoFamily = Platform.select({
@@ -199,6 +204,10 @@ function HeaderBar({
   streak: number;
   badges: number;
 }) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
+  const mode = useThemeStore((s) => s.mode);
+  const toggleTheme = useThemeStore((s) => s.actions.toggle);
   return (
     <View style={styles.headerBar} pointerEvents="box-none">
       <Text style={styles.headerBrand} accessibilityRole="header">
@@ -216,12 +225,23 @@ function HeaderBar({
           <Text style={styles.streakIcon}>🔥</Text>
           <Text style={styles.streakNum}>{streak}</Text>
         </View>
+        <Pressable
+          onPress={toggleTheme}
+          accessibilityLabel="Basculer le thème jour ou nuit"
+          accessibilityRole="button"
+          hitSlop={8}
+          style={({ pressed }) => [styles.themeBtn, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={styles.themeIcon}>{mode === 'day' ? '☀️' : '🌙'}</Text>
+        </Pressable>
       </View>
     </View>
   );
 }
 
 function RecruitmentBanner({ onGoTest }: { onGoTest: () => void }) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.banner} accessibilityRole="alert">
       <Text style={styles.bannerText}>
@@ -245,6 +265,9 @@ function RecruitmentBanner({ onGoTest }: { onGoTest: () => void }) {
 export default function CityMapScreen() {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   const xp = useUserStore((s) => s.xp);
   const placementLevel = useUserStore((s) => s.placementLevel);
@@ -391,7 +414,7 @@ export default function CityMapScreen() {
                 y1={ln.y1}
                 x2={ln.x2}
                 y2={ln.y2}
-                stroke={ln.active ? COLORS.trackOn : COLORS.trackOff}
+                stroke={ln.active ? c.trackOn : c.trackOff}
                 strokeWidth={ln.active ? 3 : 2}
                 strokeLinecap="square"
               />
@@ -412,33 +435,33 @@ export default function CityMapScreen() {
                 DISTRICT_SHORT_LABEL[district.id] ?? district.id.toUpperCase();
               const isBoss = district.id === 'boss';
 
-              let fill: string = COLORS.bgTrack;
-              let stroke: string = COLORS.trackOn;
-              let labelColor: string = COLORS.textSecondary;
+              let fill: string = c.bgTrack;
+              let stroke: string = c.trackOn;
+              let labelColor: string = c.textSecondary;
 
               if (isBoss && !isLocked) {
-                stroke = COLORS.neonAmber;
+                stroke = c.neonAmber;
               }
               if (isLocked) {
-                fill = COLORS.trackOff;
-                stroke = COLORS.trackOff;
-                labelColor = COLORS.textMuted;
+                fill = c.trackOff;
+                stroke = c.trackOff;
+                labelColor = c.textMuted;
               } else if (status === 'completed') {
-                fill = COLORS.neonGreen;
-                stroke = COLORS.neonGreen;
-                labelColor = COLORS.bg;
+                fill = c.neonGreen;
+                stroke = c.neonGreen;
+                labelColor = ON_NEON;
               } else if (status === 'in-progress') {
-                fill = COLORS.neonPurple;
-                stroke = COLORS.neonPurple;
-                labelColor = COLORS.textPrimary;
+                fill = c.neonPurple;
+                stroke = c.neonPurple;
+                labelColor = c.textPrimary;
               } else {
-                fill = COLORS.neonBlue;
-                stroke = COLORS.neonBlue;
-                labelColor = COLORS.textPrimary;
+                fill = c.neonBlue;
+                stroke = c.neonBlue;
+                labelColor = c.textPrimary;
               }
 
               if (isBoss && isLocked) {
-                stroke = COLORS.neonAmber;
+                stroke = c.neonAmber;
               }
 
               const r = isBoss ? 24 : 22;
@@ -461,7 +484,7 @@ export default function CityMapScreen() {
                     cx={pos.x}
                     cy={pos.y}
                     r={r}
-                    color={COLORS.neonPurple}
+                    color={c.neonPurple}
                     active={status === 'in-progress'}
                   />
                   <Circle
@@ -492,7 +515,7 @@ export default function CityMapScreen() {
                 cx={particleCx}
                 cy={particleCy}
                 r={5}
-                fill={COLORS.neonAmber}
+                fill={c.neonAmber}
                 opacity={0.95}
               />
             ) : null}
@@ -552,14 +575,14 @@ export default function CityMapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: c.bg,
   },
   root: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: c.bg,
   },
   headerBar: {
     flexDirection: 'row',
@@ -574,7 +597,7 @@ const styles = StyleSheet.create({
     fontFamily: monoFamily as string,
     fontSize: 17,
     fontWeight: '800',
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     letterSpacing: 1.2,
   },
   headerStats: {
@@ -586,35 +609,48 @@ const styles = StyleSheet.create({
     fontFamily: monoFamily as string,
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.neonGreen,
+    color: c.neonGreen,
   },
   streakPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
   },
   badgePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: COLORS.neonAmber,
+    borderColor: c.neonAmber,
   },
   badgeNum: {
     fontFamily: monoFamily as string,
     fontSize: 14,
     fontWeight: '800',
-    color: COLORS.neonGreen,
+    color: c.neonGreen,
+  },
+  themeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.bgCard,
+    borderWidth: 1,
+    borderColor: c.trackOn,
+  },
+  themeIcon: {
+    fontSize: 15,
   },
   streakIcon: {
     fontSize: 14,
@@ -623,21 +659,21 @@ const styles = StyleSheet.create({
     fontFamily: monoFamily as string,
     fontSize: 14,
     fontWeight: '800',
-    color: COLORS.neonAmber,
+    color: c.neonAmber,
   },
   banner: {
     marginHorizontal: 16,
     marginBottom: 10,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     paddingHorizontal: 14,
     paddingVertical: 12,
     zIndex: 2,
   },
   bannerText: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 20,
@@ -648,7 +684,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
     borderRadius: 12,
     paddingHorizontal: 14,
   },
@@ -656,7 +692,7 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
   bannerBtnText: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: '800',
     fontFamily: monoFamily as string,
@@ -666,13 +702,13 @@ const styles = StyleSheet.create({
     minHeight: 200,
   },
   bottomPanel: {
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
@@ -684,26 +720,26 @@ const styles = StyleSheet.create({
   },
   panelTitle: {
     flex: 1,
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: '800',
     fontFamily: monoFamily as string,
     marginRight: 8,
   },
   panelClose: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 18,
     fontWeight: '600',
   },
   panelConcept: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     marginTop: 8,
     lineHeight: 20,
   },
   panelTrack: {
     height: 6,
-    backgroundColor: COLORS.trackOff,
+    backgroundColor: c.trackOff,
     borderRadius: 3,
     overflow: 'hidden',
     marginTop: 14,
@@ -711,10 +747,10 @@ const styles = StyleSheet.create({
   panelFill: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.neonGreen,
+    backgroundColor: c.neonGreen,
   },
   panelMeta: {
-    color: COLORS.textMuted,
+    color: c.textMuted,
     fontSize: 12,
     marginTop: 6,
     fontFamily: monoFamily as string,
@@ -723,7 +759,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     minHeight: 48,
     borderRadius: 12,
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -731,7 +767,7 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
   playBtnText: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '800',
     fontFamily: monoFamily as string,

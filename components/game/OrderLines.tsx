@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 
-import { COLORS } from '../../constants/colors';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import type { ThemePalette } from '../../constants/palette';
 
 const mono = Platform.select({
   ios: 'Menlo',
@@ -51,6 +52,9 @@ export function OrderLines({
   onComplete,
   onHintUsed,
 }: OrderLinesProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   const scrambled = useMemo(() => scrambleIndices(lines), [lines]);
 
   const [placed, setPlaced] = useState<number[]>([]);
@@ -127,10 +131,10 @@ export function OrderLines({
 
   const slotBorder =
     phase === 'correct'
-      ? COLORS.neonGreen
+      ? c.neonGreen
       : phase === 'wrong'
         ? INCORRECT_RED
-        : COLORS.trackOn;
+        : c.trackOn;
 
   return (
     <View style={styles.wrapper}>
@@ -268,17 +272,17 @@ export function OrderLines({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   wrapper: {
     width: '100%',
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     borderRadius: 14,
     padding: 18,
   },
   question: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 26,
@@ -297,12 +301,12 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     alignItems: 'center',
     justifyContent: 'center',
   },
   hintBtnText: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 18,
     fontWeight: '800',
     fontFamily: mono as string,
@@ -310,13 +314,13 @@ const styles = StyleSheet.create({
   hintText: {
     flex: 1,
     minWidth: 120,
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: mono as string,
   },
   zoneLabel: {
-    color: COLORS.textMuted,
+    color: c.textMuted,
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
@@ -332,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   placeholder: {
-    color: COLORS.textMuted,
+    color: c.textMuted,
     fontSize: 13,
     padding: 8,
     fontFamily: mono as string,
@@ -353,15 +357,15 @@ const styles = StyleSheet.create({
   placedRow: {
     backgroundColor: '#05050f',
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
   },
   poolRow: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.neonPurple,
+    borderColor: c.neonPurple,
   },
   lineNum: {
-    color: COLORS.neonAmber,
+    color: c.neonAmber,
     fontSize: 13,
     fontWeight: '800',
     width: 18,
@@ -369,7 +373,7 @@ const styles = StyleSheet.create({
     fontFamily: mono as string,
   },
   poolPlus: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 18,
     fontWeight: '800',
     width: 18,
@@ -378,7 +382,7 @@ const styles = StyleSheet.create({
   },
   lineCode: {
     flex: 1,
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: mono as string,
@@ -387,7 +391,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   explainText: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 15,
     lineHeight: 22,
     fontFamily: mono as string,
@@ -398,10 +402,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
   },
   actionBtnText: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '800',
     fontFamily: mono as string,
@@ -410,11 +414,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.neonPurple,
+    borderColor: c.neonPurple,
   },
   continueBtn: {
     flex: 1,
-    backgroundColor: COLORS.trackOn,
+    backgroundColor: c.trackOn,
   },
   wrongActions: {
     flexDirection: 'row',

@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import type { ThemePalette } from '../../constants/palette';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import { askLog } from '../../lib/claude';
 import { LOGBubble } from './LOGBubble';
 
@@ -24,6 +26,8 @@ export interface LOGModalProps {
  * Modal plein écran « Demande à LOG » : intro, saisie, réponse fictive pour la phase MVP.
  */
 export function LOGModal({ visible, concept, onClose }: LOGModalProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [question, setQuestion] = useState('');
   const [reply, setReply] = useState<string | null>(null);
 
@@ -92,7 +96,7 @@ export function LOGModal({ visible, concept, onClose }: LOGModalProps) {
                 value={question}
                 onChangeText={setQuestion}
                 placeholder="Ta question…"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={c.textMuted}
                 style={styles.input}
                 multiline
                 accessibilityLabel="Champ de question pour LOG"
@@ -124,13 +128,13 @@ export function LOGModal({ visible, concept, onClose }: LOGModalProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   flex: {
     flex: 1,
   },
   root: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    backgroundColor: 'rgba(6, 5, 20, 0.66)',
   },
   backdropPressable: {
     ...StyleSheet.absoluteFillObject,
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   closeBtnText: {
-    color: '#F8FAFC',
+    color: c.textPrimary,
     fontSize: 36,
     lineHeight: 40,
     fontWeight: '300',
@@ -174,16 +178,16 @@ const styles = StyleSheet.create({
     maxHeight: 160,
     borderRadius: 12,
     padding: 14,
-    backgroundColor: '#1E293B',
-    color: '#F8FAFC',
+    backgroundColor: c.bgCard,
+    color: c.textPrimary,
     fontSize: 16,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: c.trackOn,
   },
   sendBtn: {
     marginTop: 16,
-    backgroundColor: '#6366F1',
+    backgroundColor: c.neonPurple,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

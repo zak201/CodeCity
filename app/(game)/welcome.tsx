@@ -11,7 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { LOGBubble } from '../../components/log/LOGBubble';
-import { COLORS } from '../../constants/colors';
+import type { ThemePalette } from '../../constants/palette';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import { useUserStore } from '../../store/userStore';
 
 const mono = Platform.select({
@@ -22,6 +23,8 @@ const mono = Platform.select({
 
 /** Fines lignes horizontales type CRT / scanlines (opacité faible, non interactif). */
 function ScanLineOverlay() {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const indices = useMemo(() => {
     const h = Dimensions.get('window').height;
     const count = Math.min(240, Math.max(80, Math.ceil(h / 6) + 32));
@@ -45,6 +48,8 @@ function ScanLineOverlay() {
 }
 
 export default function WelcomeScreen() {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const placementLevel = useUserStore((s) => s.placementLevel);
 
@@ -91,10 +96,10 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: c.bg,
   },
   scanlines: {
     ...StyleSheet.absoluteFillObject,
@@ -107,7 +112,7 @@ const styles = StyleSheet.create({
   /** Ligne ~1 px ; opacité ~2 % pour un effet CRT discret. */
   scanHairline: {
     height: 1,
-    backgroundColor: COLORS.textPrimary,
+    backgroundColor: c.textPrimary,
     opacity: 0.02,
   },
   body: {
@@ -117,7 +122,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   brand: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 36,
     fontWeight: '900',
     textAlign: 'center',
@@ -132,17 +137,17 @@ const styles = StyleSheet.create({
     minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
     borderRadius: 14,
     paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
   },
   ctaPressed: {
     opacity: 0.88,
   },
   ctaText: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 17,
     fontWeight: '800',
     fontFamily: mono as string,

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
   Platform,
@@ -8,16 +8,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-/** Couleurs de l’avatar LOG selon l’humeur du message. */
-const MOOD_AVATAR_TEXT: Record<
-  'neutral' | 'positive' | 'negative' | 'mysterious',
-  string
-> = {
-  neutral: '#F5F4FF',
-  positive: '#22C08A',
-  negative: '#FF6B6B',
-  mysterious: '#8B83F0',
-};
+import type { ThemePalette } from '../../constants/palette';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 export interface LOGBubbleProps {
   message: string;
@@ -33,11 +25,14 @@ const monoFamily = Platform.select({
   default: 'monospace',
 });
 
+/** Corail « erreur douce » — même valeur en jour et nuit. */
+const CORAL = '#FF6B6B';
+
 /** Petit triangle pointant vers l’avatar, même couleur que la bulle. */
-function BubbleArrow() {
+function BubbleArrow({ color }: { color: string }) {
   return (
     <View style={arrowStyles.wrapper} accessible={false}>
-      <View style={arrowStyles.triangle} />
+      <View style={[arrowStyles.triangle, { borderRightColor: color }]} />
     </View>
   );
 }
@@ -56,7 +51,6 @@ const arrowStyles = StyleSheet.create({
     borderRightWidth: 10,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderRightColor: '#141334',
   },
 });
 
@@ -70,10 +64,19 @@ export function LOGBubble({
   animated = false,
   style,
 }: LOGBubbleProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   const opacity = useRef(new Animated.Value(animated ? 0 : 1)).current;
   const translateY = useRef(new Animated.Value(animated ? 8 : 0)).current;
 
-  const avatarTextColor = MOOD_AVATAR_TEXT[mood];
+  const moodColor: Record<LOGBubbleProps['mood'] & string, string> = {
+    neutral: c.textPrimary,
+    positive: c.neonGreen,
+    negative: CORAL,
+    mysterious: c.neonPurple,
+  };
+  const avatarTextColor = moodColor[mood];
 
   useEffect(() => {
     if (!animated) return;
@@ -105,7 +108,7 @@ export function LOGBubble({
       </View>
 
       <View style={styles.bubbleRow}>
-        <BubbleArrow />
+        <BubbleArrow color={c.logBg} />
         <View style={styles.bubble}>
           <Text
             style={styles.messageText}
@@ -138,44 +141,45 @@ export function LOGBubble({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  /** Fond sombre pour contraster avec les lettres colorées selon l’humeur. */
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#1A1842',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  avatarText: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    fontFamily: monoFamily,
-  },
-  bubbleRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: 0,
-  },
-  bubble: {
-    flex: 1,
-    backgroundColor: '#141334',
-    borderRadius: 12,
-    padding: 12,
-    minWidth: 0,
-  },
-  messageText: {
-    color: '#F5F4FF',
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: monoFamily,
-  },
-});
+const makeStyles = (c: ThemePalette) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    /** Fond sombre pour contraster avec les lettres colorées selon l’humeur. */
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: c.bgTrack,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    avatarText: {
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+      fontFamily: monoFamily,
+    },
+    bubbleRow: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      minWidth: 0,
+    },
+    bubble: {
+      flex: 1,
+      backgroundColor: c.logBg,
+      borderRadius: 12,
+      padding: 12,
+      minWidth: 0,
+    },
+    messageText: {
+      color: c.textPrimary,
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: monoFamily,
+    },
+  });
