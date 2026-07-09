@@ -28,6 +28,8 @@ export default function DistrictCompleteScreen() {
   const id = normalizeParam(rawId);
 
   const placementLevel = useUserStore((s) => s.placementLevel);
+  const xp = useUserStore((s) => s.xp);
+  const playerLevel = useUserStore((s) => s.level);
   const byDistrict = useProgressStore((s) => s.byDistrict);
   const getDistrictStars = useProgressStore((s) => s.actions.getDistrictStars);
 
@@ -133,6 +135,16 @@ export default function DistrictCompleteScreen() {
             <Text style={styles.statValue}>
               {district?.totalLevels ?? 0} terminés
             </Text>
+          </View>
+          <View style={styles.statRow}>
+            <Text style={styles.statLabel}>XP totale</Text>
+            <Text style={[styles.statValue, { color: c.neonGreen }]}>
+              {xp} XP
+            </Text>
+          </View>
+          <View style={styles.statRow}>
+            <Text style={styles.statLabel}>Niveau joueur</Text>
+            <Text style={styles.statValue}>Niv. {playerLevel}</Text>
           </View>
         </View>
 

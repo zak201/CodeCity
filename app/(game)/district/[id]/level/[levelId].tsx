@@ -68,19 +68,21 @@ export default function LevelScreen() {
 
   const goNextOrDistrict = useCallback(() => {
     if (!level) return;
-    const ordered = getLevelIdsInOrderForDistrict(districtId);
-    const idx = ordered.indexOf(level.id);
-    const nextId = idx >= 0 ? ordered[idx + 1] : undefined;
-    if (nextId) {
-      router.replace(`/(game)/district/${districtId}/level/${nextId}`);
-      return;
-    }
-    // Dernier niveau : écran de fin si le quartier est complété.
+    // Quartier terminé → écran de félicitations + récompenses EN PRIORITÉ,
+    // quel que soit le niveau qui vient de le compléter.
     const completedCount =
       useProgressStore.getState().byDistrict[districtId]?.completedLevels
         .length ?? 0;
     if (isDistrictCompleted(districtId, completedCount)) {
       router.replace(`/(game)/district/${districtId}/complete`);
+      return;
+    }
+    // Sinon : niveau suivant s'il existe, sinon retour au quartier.
+    const ordered = getLevelIdsInOrderForDistrict(districtId);
+    const idx = ordered.indexOf(level.id);
+    const nextId = idx >= 0 ? ordered[idx + 1] : undefined;
+    if (nextId) {
+      router.replace(`/(game)/district/${districtId}/level/${nextId}`);
     } else {
       router.replace(`/(game)/district/${districtId}`);
     }
