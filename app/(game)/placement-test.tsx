@@ -20,6 +20,7 @@ import {
   placementQuestions,
 } from '../../data/placementTest';
 import { districts } from '../../data/districts';
+import { creditSkippedDistricts } from '../../lib/placementRewards';
 import { useUserStore } from '../../store/userStore';
 import type { Answer, DifficultyLevel } from '../../types/game';
 
@@ -282,8 +283,9 @@ export default function PlacementTestScreen() {
 
   const handleStart = useCallback(() => {
     setPlacementLevel(computedLevel);
-    // On emmène directement le joueur dans son quartier de départ assigné
-    // (ex. Avancé → Fonctions) plutôt que sur la carte.
+    // Crédite les quartiers sautés (badges + étoiles + XP) puis emmène le
+    // joueur directement dans son quartier de départ assigné.
+    creditSkippedDistricts(computedLevel);
     const startDistrict = getStartingDistrict(computedLevel);
     router.replace(`/(game)/district/${startDistrict}`);
   }, [computedLevel, setPlacementLevel, router]);
