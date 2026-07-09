@@ -16,6 +16,7 @@ import type { ThemePalette } from '../../constants/palette';
 import { districts } from '../../data/districts';
 import { computeLockState, getEarnedBadges } from '../../data/progression';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { creditSkippedDistricts } from '../../lib/placementRewards';
 import { ensureUser, syncStreak } from '../../lib/sync';
 import { useProgressStore } from '../../store/progressStore';
 import { useStreakStore } from '../../store/streakStore';
@@ -304,6 +305,8 @@ export default function CityMapScreen() {
 
   useEffect(() => {
     if (placementLevel === null) return;
+    // Rattrapage : crédite les quartiers sautés au placement (idempotent).
+    creditSkippedDistricts(placementLevel);
     recordPlay();
     // Synchronisation best-effort : crée le compte serveur si besoin, puis
     // pousse le streak. N'interrompt jamais le jeu en cas d'échec réseau.
