@@ -40,6 +40,15 @@ export default function DistrictScreen() {
   const completedIds = districtProgress?.completedLevels ?? [];
   const starsById = districtProgress?.stars ?? {};
 
+  // Verrouillage séquentiel : seul le premier niveau non terminé est jouable.
+  const orderedLevels = useMemo(
+    () => [...levels].sort((a, b) => a.order - b.order),
+    [levels]
+  );
+  const firstIncompleteIndex = orderedLevels.findIndex(
+    (l) => !completedIds.includes(l.id)
+  );
+
   if (district && !unlocked) {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -110,9 +119,33 @@ export default function DistrictScreen() {
           </View>
         ) : (
           <View style={styles.list}>
-            {levels.map((level) => {
+            {orderedLevels.map((level, i) => {
               const done = completedIds.includes(level.id);
+              const isCurrent = i === firstIncompleteIndex;
+              const locked = !done && !isCurrent;
               const stars = starsById[level.id] ?? 0;
+
+              // Niveau verrouillé : non cliquable, cadenas affiché.
+              if (locked) {
+                return (
+                  <View
+                    key={level.id}
+                    accessibilityLabel={`Niveau verrouillé : ${level.title}. Termine le niveau précédent pour le débloquer.`}
+                    style={[styles.levelRow, styles.levelRowLocked]}
+                  >
+                    <Text style={styles.levelOrderLocked}>🔒</Text>
+                    <View style={styles.levelBody}>
+                      <Text style={[styles.levelTitle, styles.textDone]}>
+                        {level.title}
+                      </Text>
+                      <Text style={[styles.levelHint, styles.textDone]} numberOfLines={1}>
+                        Termine le niveau précédent pour débloquer
+                      </Text>
+                    </View>
+                  </View>
+                );
+              }
+
               return (
                 <Pressable
                   key={level.id}
@@ -122,12 +155,13 @@ export default function DistrictScreen() {
                   accessibilityLabel={
                     done
                       ? `Niveau : ${level.title}, complété, ${stars} étoiles. Rejouable.`
-                      : `Niveau : ${level.title}`
+                      : `Niveau à jouer : ${level.title}`
                   }
                   accessibilityRole="button"
                   style={({ pressed }) => [
                     styles.levelRow,
                     done && styles.levelRowDone,
+                    isCurrent && styles.levelRowCurrent,
                     pressed && styles.levelRowPressed,
                   ]}
                 >
@@ -229,6 +263,17 @@ const makeStyles = (c: ThemePalette) => StyleSheet.create({
     backgroundColor: c.bg,
     borderColor: c.trackOff,
   },
+  /** Niveau courant (le prochain à jouer) : mis en évidence. */
+  levelRowCurrent: {
+    borderColor: c.neonPurple,
+    borderWidth: 2,
+  },
+  /** Niveau verrouillé : atténué, non cliquable. */
+  levelRowLocked: {
+    backgroundColor: 'transparent',
+    borderColor: c.trackOff,
+    opacity: 0.55,
+  },
   levelOrder: {
     color: c.neonPurple,
     fontSize: 18,
@@ -237,6 +282,11 @@ const makeStyles = (c: ThemePalette) => StyleSheet.create({
   },
   levelOrderDone: {
     color: c.neonGreen,
+  },
+  levelOrderLocked: {
+    fontSize: 16,
+    width: 28,
+    textAlign: 'center',
   },
   textDone: {
     color: c.textMuted,
