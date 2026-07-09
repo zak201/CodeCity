@@ -28,7 +28,7 @@ const mono = Platform.select({
   default: 'monospace',
 });
 
-const INCORRECT_RED = '#E24B4A';
+const INCORRECT_RED = '#FF6B6B';
 
 // ---------------------------------------------------------------------------
 // Répliques LOG pré-écrites
