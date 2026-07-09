@@ -6,6 +6,9 @@ import { LOGBubble } from '../../../../components/log/LOGBubble';
 import { COLORS } from '../../../../constants/colors';
 import { districts } from '../../../../data/districts';
 import { getLevelsForDistrict } from '../../../../data/levels/registry';
+import { isDistrictUnlocked } from '../../../../data/progression';
+import { useProgressStore } from '../../../../store/progressStore';
+import { useUserStore } from '../../../../store/userStore';
 
 function normalizeParam(p: string | string[] | undefined): string {
   if (p === undefined) return '';
@@ -17,9 +20,40 @@ export default function DistrictScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = normalizeParam(rawId);
 
+  const placementLevel = useUserStore((s) => s.placementLevel);
+  const byDistrict = useProgressStore((s) => s.byDistrict);
+
   const district = districts.find((d) => d.id === id);
   const levels = getLevelsForDistrict(id);
   const isEmpty = levels.length === 0;
+  const unlocked = isDistrictUnlocked(
+    id,
+    placementLevel,
+    (districtId) => byDistrict[districtId]?.completedLevels.length ?? 0
+  );
+
+  if (district && !unlocked) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>
+            Quartier verrouillé. Termine le quartier précédent pour y accéder.
+          </Text>
+          <Pressable
+            onPress={() => router.push('/(game)/map')}
+            accessibilityLabel="Retour à la carte"
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              pressed && styles.primaryPressed,
+            ]}
+          >
+            <Text style={styles.primaryBtnText}>Retour à la carte</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>

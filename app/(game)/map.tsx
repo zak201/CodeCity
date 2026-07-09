@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -14,6 +14,8 @@ import Svg, { Circle, G, Line, Text as SvgText } from 'react-native-svg';
 
 import { COLORS } from '../../constants/colors';
 import { districts } from '../../data/districts';
+import { computeLockState, getEarnedBadges } from '../../data/progression';
+import { ensureUser, syncStreak } from '../../lib/sync';
 import { useProgressStore } from '../../store/progressStore';
 import { useStreakStore } from '../../store/streakStore';
 import { useUserStore } from '../../store/userStore';
@@ -59,9 +61,10 @@ type DistrictStatus = 'locked' | 'unlocked' | 'in-progress' | 'completed';
 
 function getDistrictStatus(
   district: District,
-  completedCount: number
+  completedCount: number,
+  locked: boolean
 ): DistrictStatus {
-  if (district.isLocked) return 'locked';
+  if (locked) return 'locked';
   if (completedCount >= district.totalLevels) return 'completed';
   if (completedCount > 0) return 'in-progress';
   return 'unlocked';
@@ -77,10 +80,6 @@ const DISTRICT_SHORT_LABEL: Record<string, string> = {
   q7: 'REC',
   boss: '⬡',
 };
-
-function isSegmentActive(destDistrict: District): boolean {
-  return !destDistrict.isLocked;
-}
 
 type Point = { x: number; y: number };
 
@@ -191,7 +190,15 @@ function PulseHalo({
   );
 }
 
-function HeaderBar({ xp, streak }: { xp: number; streak: number }) {
+function HeaderBar({
+  xp,
+  streak,
+  badges,
+}: {
+  xp: number;
+  streak: number;
+  badges: number;
+}) {
   return (
     <View style={styles.headerBar} pointerEvents="box-none">
       <Text style={styles.headerBrand} accessibilityRole="header">
@@ -199,6 +206,12 @@ function HeaderBar({ xp, streak }: { xp: number; streak: number }) {
       </Text>
       <View style={styles.headerStats}>
         <Text style={styles.headerXp}>{xp} XP</Text>
+        {badges > 0 ? (
+          <View style={styles.badgePill} accessibilityLabel={`${badges} badges`}>
+            <Text style={styles.streakIcon}>🏅</Text>
+            <Text style={styles.badgeNum}>{badges}</Text>
+          </View>
+        ) : null}
         <View style={styles.streakPill}>
           <Text style={styles.streakIcon}>🔥</Text>
           <Text style={styles.streakNum}>{streak}</Text>
@@ -235,16 +248,35 @@ export default function CityMapScreen() {
 
   const xp = useUserStore((s) => s.xp);
   const placementLevel = useUserStore((s) => s.placementLevel);
-  const getCompletedCount = useProgressStore(
-    (s) => s.actions.getCompletedCount
-  );
+  const byDistrict = useProgressStore((s) => s.byDistrict);
   const currentStreak = useStreakStore((s) => s.currentStreak);
   const recordPlay = useStreakStore((s) => s.actions.recordPlay);
 
+  const completedCountOf = useCallback(
+    (districtId: string) =>
+      byDistrict[districtId]?.completedLevels.length ?? 0,
+    [byDistrict]
+  );
+
+  const lockState = useMemo(
+    () => computeLockState(placementLevel, completedCountOf),
+    [placementLevel, completedCountOf]
+  );
+
+  const earnedBadges = useMemo(
+    () => getEarnedBadges(completedCountOf),
+    [completedCountOf]
+  );
+
   useEffect(() => {
-    if (placementLevel !== null) {
-      recordPlay();
-    }
+    if (placementLevel === null) return;
+    recordPlay();
+    // Synchronisation best-effort : crée le compte serveur si besoin, puis
+    // pousse le streak. N'interrompt jamais le jeu en cas d'échec réseau.
+    void (async () => {
+      await ensureUser();
+      void syncStreak();
+    })();
   }, [placementLevel, recordPlay]);
 
   const needsPlacement = placementLevel === null;
@@ -263,7 +295,7 @@ export default function CityMapScreen() {
       const from = NODE_POSITIONS[i];
       const to = NODE_POSITIONS[i + 1];
       const dest = districts[i + 1];
-      const active = isSegmentActive(dest);
+      const active = lockState[dest.id] === false;
       const ortho = buildOrthogonalSegments(from, to);
       for (const seg of ortho) {
         const [a, b] = seg;
@@ -285,7 +317,7 @@ export default function CityMapScreen() {
     }
 
     return { lines: linesAcc, activeSegmentsForParticle: particleSegs };
-  }, []);
+  }, [lockState]);
 
   const particlePath = useMemo(
     () => flattenSegmentsToPoints(activeSegmentsForParticle),
@@ -332,14 +364,12 @@ export default function CityMapScreen() {
   const selectedDistrict = selectedId
     ? districts.find((d) => d.id === selectedId)
     : null;
-  const selectedCompleted = selectedId
-    ? getCompletedCount(selectedId)
-    : 0;
+  const selectedCompleted = selectedId ? completedCountOf(selectedId) : 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.root}>
-        <HeaderBar xp={xp} streak={currentStreak} />
+        <HeaderBar xp={xp} streak={currentStreak} badges={earnedBadges.length} />
 
         {needsPlacement ? (
           <RecruitmentBanner
@@ -371,8 +401,12 @@ export default function CityMapScreen() {
               const pos = NODE_POSITIONS[index];
               if (!pos) return null;
 
-              const completed = getCompletedCount(district.id);
-              const status = getDistrictStatus(district, completed);
+              const completed = completedCountOf(district.id);
+              const status = getDistrictStatus(
+                district,
+                completed,
+                lockState[district.id] !== false
+              );
               const isLocked = status === 'locked';
               const shortLabel =
                 DISTRICT_SHORT_LABEL[district.id] ?? district.id.toUpperCase();
@@ -465,7 +499,7 @@ export default function CityMapScreen() {
           </Svg>
         </View>
 
-        {selectedDistrict && !selectedDistrict.isLocked ? (
+        {selectedDistrict && lockState[selectedDistrict.id] === false ? (
           <View style={styles.bottomPanel}>
             <View style={styles.panelHeader}>
               <Text style={styles.panelTitle}>{selectedDistrict.name}</Text>
@@ -564,6 +598,23 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderWidth: 1,
     borderColor: COLORS.trackOn,
+  },
+  badgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: COLORS.neonAmber,
+  },
+  badgeNum: {
+    fontFamily: monoFamily as string,
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.neonGreen,
   },
   streakIcon: {
     fontSize: 14,

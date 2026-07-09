@@ -26,8 +26,8 @@ async function main(): Promise<void> {
       },
       progresses: {
         create: [
-          { districtId: 'q1', levelId: 'q1-l01', stars: 3 },
-          { districtId: 'q1', levelId: 'q1-l02', stars: 2 },
+          { districtId: 'q1', levelId: 'q1-c1-l01', stars: 3 },
+          { districtId: 'q1', levelId: 'q1-c1-l02', stars: 2 },
         ],
       },
     },
@@ -47,7 +47,7 @@ async function main(): Promise<void> {
         },
       },
       progresses: {
-        create: [{ districtId: 'q2', levelId: 'q2-l01', stars: 1 }],
+        create: [{ districtId: 'q2', levelId: 'q2-c1-l01', stars: 1 }],
       },
     },
   });

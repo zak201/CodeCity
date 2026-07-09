@@ -3,6 +3,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { FillBlanks } from '../../../../../components/game/FillBlanks';
+import { OrderLines } from '../../../../../components/game/OrderLines';
+import { Prediction } from '../../../../../components/game/Prediction';
 import { QCM } from '../../../../../components/game/QCM';
 import { LOGBubble } from '../../../../../components/log/LOGBubble';
 import { LOGModal } from '../../../../../components/log/LOGModal';
@@ -14,6 +17,11 @@ import {
   getLevelIdsInOrderForDistrict,
   isDistrictWithLevels,
 } from '../../../../../data/levels/registry';
+import {
+  isDistrictCompleted,
+  isDistrictUnlocked,
+} from '../../../../../data/progression';
+import { syncProgress, syncUser } from '../../../../../lib/sync';
 import { useProgressStore } from '../../../../../store/progressStore';
 import { useUserStore } from '../../../../../store/userStore';
 
@@ -40,13 +48,20 @@ export default function LevelScreen() {
   }, [levelId]);
 
   const completeLevel = useProgressStore((s) => s.actions.completeLevel);
+  const byDistrict = useProgressStore((s) => s.byDistrict);
   const addXP = useUserStore((s) => s.actions.addXP);
+  const placementLevel = useUserStore((s) => s.placementLevel);
 
   const level = getLevelForDistrict(districtId, levelId);
 
   const district = districts.find((d) => d.id === districtId);
   const invalidDistrict = !isDistrictWithLevels(districtId);
   const notFound = !level;
+  const districtUnlocked = isDistrictUnlocked(
+    districtId,
+    placementLevel,
+    (id) => byDistrict[id]?.completedLevels.length ?? 0
+  );
 
   const goNextOrDistrict = useCallback(() => {
     if (!level) return;
@@ -55,6 +70,14 @@ export default function LevelScreen() {
     const nextId = idx >= 0 ? ordered[idx + 1] : undefined;
     if (nextId) {
       router.replace(`/(game)/district/${districtId}/level/${nextId}`);
+      return;
+    }
+    // Dernier niveau : écran de fin si le quartier est complété.
+    const completedCount =
+      useProgressStore.getState().byDistrict[districtId]?.completedLevels
+        .length ?? 0;
+    if (isDistrictCompleted(districtId, completedCount)) {
+      router.replace(`/(game)/district/${districtId}/complete`);
     } else {
       router.replace(`/(game)/district/${districtId}`);
     }
@@ -65,6 +88,9 @@ export default function LevelScreen() {
     const stars = (hintUsed ? 2 : 3) as 1 | 2 | 3;
     completeLevel(districtId, level.id, stars);
     addXP(level.xpReward);
+    // Synchronisation best-effort avec le backend.
+    void syncProgress(districtId, level.id, stars);
+    void syncUser();
   }, [addXP, completeLevel, districtId, hintUsed, level]);
 
   const handleHintUsed = useCallback(() => {
@@ -91,6 +117,30 @@ export default function LevelScreen() {
             ]}
           >
             <Text style={styles.primaryBtnText}>Retour au quartier</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!districtUnlocked) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <View style={styles.errorWrap}>
+          <Text style={styles.errorTitle}>Quartier verrouillé</Text>
+          <Text style={styles.errorBody}>
+            Termine le quartier précédent pour débloquer ce contenu.
+          </Text>
+          <Pressable
+            onPress={() => router.replace('/(game)/map')}
+            accessibilityLabel="Retour à la carte"
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              pressed && styles.primaryPressed,
+            ]}
+          >
+            <Text style={styles.primaryBtnText}>Retour à la carte</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -142,8 +192,8 @@ export default function LevelScreen() {
           />
         ) : null}
 
-        {level.mechanic === 'qcm' && level.answers ? (
-          <View style={styles.qcmWrap}>
+        <View style={styles.qcmWrap}>
+          {level.mechanic === 'qcm' && level.answers ? (
             <QCM
               key={level.id}
               question={level.question}
@@ -154,12 +204,51 @@ export default function LevelScreen() {
               onComplete={goNextOrDistrict}
               onHintUsed={handleHintUsed}
             />
-          </View>
-        ) : (
-          <Text style={styles.fallback}>
-            Mécanique non prise en charge pour ce niveau.
-          </Text>
-        )}
+          ) : level.mechanic === 'prediction' && level.code && level.answers ? (
+            <Prediction
+              key={level.id}
+              code={level.code}
+              question={level.question}
+              answers={level.answers}
+              explanation={level.explanation}
+              hint={level.hint}
+              onCorrect={handleCorrect}
+              onComplete={goNextOrDistrict}
+              onHintUsed={handleHintUsed}
+            />
+          ) : level.mechanic === 'construction' && level.orderedLines ? (
+            <OrderLines
+              key={level.id}
+              lines={level.orderedLines}
+              question={level.question}
+              explanation={level.explanation}
+              hint={level.hint}
+              onCorrect={handleCorrect}
+              onComplete={goNextOrDistrict}
+              onHintUsed={handleHintUsed}
+            />
+          ) : level.mechanic === 'drag-drop' &&
+            level.fillTemplate &&
+            level.fillTokens &&
+            level.fillSolution ? (
+            <FillBlanks
+              key={level.id}
+              template={level.fillTemplate}
+              tokens={level.fillTokens}
+              solution={level.fillSolution}
+              question={level.question}
+              explanation={level.explanation}
+              hint={level.hint}
+              onCorrect={handleCorrect}
+              onComplete={goNextOrDistrict}
+              onHintUsed={handleHintUsed}
+            />
+          ) : (
+            <Text style={styles.fallback}>
+              Mécanique non prise en charge pour ce niveau.
+            </Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

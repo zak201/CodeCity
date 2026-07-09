@@ -37,6 +37,25 @@ export interface Level {
   explanation: string;
   xpReward: number;
   hint?: string;
+  /** Bloc de code affiché au-dessus de la question (mécanique `prediction`). */
+  code?: string;
+  /**
+   * Mécanique `construction` : lignes de code dans le BON ordre.
+   * Elles sont mélangées à l'affichage ; le joueur doit les remettre en ordre.
+   */
+  orderedLines?: string[];
+  /**
+   * Mécanique `drag-drop` : gabarit de code avec des trous notés `___`.
+   * Ex. : `si (age ___ 18) { ... }`
+   */
+  fillTemplate?: string;
+  /** Mécanique `drag-drop` : jetons proposés (bonne réponse + distracteurs). */
+  fillTokens?: string[];
+  /**
+   * Mécanique `drag-drop` : suite EXACTE des jetons attendus, dans l'ordre des
+   * trous `___` du gabarit.
+   */
+  fillSolution?: string[];
 }
 
 export interface Answer {

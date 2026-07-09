@@ -11,10 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { askLog } from '../../lib/claude';
 import { LOGBubble } from './LOGBubble';
-
-const MOCK_REPLY =
-  'Je suis LOG. Cette fonctionnalité sera bientôt active.';
 
 export interface LOGModalProps {
   visible: boolean;
@@ -27,7 +25,7 @@ export interface LOGModalProps {
  */
 export function LOGModal({ visible, concept, onClose }: LOGModalProps) {
   const [question, setQuestion] = useState('');
-  const [showMockReply, setShowMockReply] = useState(false);
+  const [reply, setReply] = useState<string | null>(null);
 
   const introMessage = useMemo(
     () => `Pose-moi ta question sur ${concept}.`,
@@ -36,13 +34,15 @@ export function LOGModal({ visible, concept, onClose }: LOGModalProps) {
 
   const handleClose = useCallback(() => {
     setQuestion('');
-    setShowMockReply(false);
+    setReply(null);
     onClose();
   }, [onClose]);
 
-  const handleSend = useCallback(() => {
-    setShowMockReply(true);
-  }, []);
+  const handleSend = useCallback(async () => {
+    setReply('…');
+    const answer = await askLog({ concept, question });
+    setReply(answer);
+  }, [concept, question]);
 
   return (
     <Modal
@@ -111,9 +111,9 @@ export function LOGModal({ visible, concept, onClose }: LOGModalProps) {
                 <Text style={styles.sendBtnText}>Envoyer</Text>
               </Pressable>
 
-              {showMockReply ? (
+              {reply ? (
                 <View style={styles.replyWrap}>
-                  <LOGBubble message={MOCK_REPLY} mood="neutral" animated />
+                  <LOGBubble message={reply} mood="neutral" animated />
                 </View>
               ) : null}
             </View>

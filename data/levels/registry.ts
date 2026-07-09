@@ -7,6 +7,7 @@ import { getQ4Level, getQ4LevelIdsInOrder, q4FonctionsLevels } from './q4-foncti
 import { getQ5Level, getQ5LevelIdsInOrder, q5ListesLevels } from './q5-listes';
 import { getQ6Level, getQ6LevelIdsInOrder, q6TriLevels } from './q6-tri';
 import { getQ7Level, getQ7LevelIdsInOrder, q7RecursiviteLevels } from './q7-recursivite';
+import { bossLevels, getBossLevel, getBossLevelIdsInOrder } from './boss';
 
 /** Quartiers pour lesquels du contenu niveau existe dans l’app. */
 export const DISTRICT_IDS_WITH_LEVELS = [
@@ -17,6 +18,7 @@ export const DISTRICT_IDS_WITH_LEVELS = [
   'q5',
   'q6',
   'q7',
+  'boss',
 ] as const;
 
 export type DistrictIdWithLevels = (typeof DISTRICT_IDS_WITH_LEVELS)[number];
@@ -41,6 +43,8 @@ export function getLevelsForDistrict(districtId: string): Level[] {
       return q6TriLevels;
     case 'q7':
       return q7RecursiviteLevels;
+    case 'boss':
+      return bossLevels;
     default:
       return [];
   }
@@ -65,6 +69,8 @@ export function getLevelForDistrict(
       return getQ6Level(levelId);
     case 'q7':
       return getQ7Level(levelId);
+    case 'boss':
+      return getBossLevel(levelId);
     default:
       return undefined;
   }
@@ -86,6 +92,8 @@ export function getLevelIdsInOrderForDistrict(districtId: string): string[] {
       return getQ6LevelIdsInOrder();
     case 'q7':
       return getQ7LevelIdsInOrder();
+    case 'boss':
+      return getBossLevelIdsInOrder();
     default:
       return [];
   }

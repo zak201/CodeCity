@@ -1,10 +1,25 @@
 # CodeCity 🏙️
 
+> 🔗 Repository : https://github.com/zak201/CodeCity
+
+[![Expo](https://img.shields.io/badge/Expo-54-000020?style=flat&logo=expo&logoColor=white)](https://expo.dev/)
+[![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?style=flat&logo=react&logoColor=black)](https://reactnative.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Zustand](https://img.shields.io/badge/Zustand-5-433E38?style=flat)](https://github.com/pmndrs/zustand)
+[![Express](https://img.shields.io/badge/Express-5.1-000000?style=flat&logo=express&logoColor=white)](https://expressjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?style=flat&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+
 > *"La ville de CodeCity est entièrement gouvernée par des algorithmes. Un bug mystérieux se propage. LOG, l'IA gardienne, t'a recruté comme Code Architect. À toi de sauver la ville."*
 
 Jeu mobile éducatif qui apprend l'algorithmique aux débutants complets, à travers une histoire narrative et des puzzles progressifs. 5 à 15 minutes par jour.
 
+### 📸 Aperçu
+
+<!-- Zak : après ta capture de la carte (style cyberpunk), enregistre-la en docs/mockups/03-carte-cyberpunk.png puis ajoute sous ce commentaire une ligne Markdown du type : ![Carte de CodeCity — aperçu hero](docs/mockups/03-carte-cyberpunk.png) -->
+
 ---
+
 
 ## Stack technique
 
@@ -12,11 +27,11 @@ Jeu mobile éducatif qui apprend l'algorithmique aux débutants complets, à tra
 |---|---|
 | Mobile | React Native + Expo SDK 54 |
 | Navigation | Expo Router (file-based) |
-| State | Zustand (persistance AsyncStorage / device prévue pour la prod) |
+| State | Zustand + persistance AsyncStorage (profil, progression, streak) |
 | Backend | Express.js + Prisma |
 | Base de données | SQLite (dev) → PostgreSQL/Supabase (prod) |
-| IA (LOG) | Claude API — Anthropic |
-| Animations | React Native Reanimated 2 + Lottie |
+| IA (LOG) | Base de connaissances locale (MVP, `lib/claude.ts`) ; Claude API via proxy backend en V1 |
+| Animations | React Native Reanimated + Lottie |
 
 ---
 
@@ -25,41 +40,41 @@ Jeu mobile éducatif qui apprend l'algorithmique aux débutants complets, à tra
 ```
 CodeCity/
 ├── app/                        # Écrans Expo Router
-│   ├── (auth)/                 # Login, onboarding
-│   ├── (game)/                 # Jeu principal
-│   │   ├── index.tsx           # Carte de la ville
-│   │   ├── placement-test.tsx  # Test de niveau initial
-│   │   └── district/[id]/      # Quartiers + niveaux
-│   └── _layout.tsx
+│   ├── _layout.tsx
+│   ├── index.tsx               # Redirection welcome | map
+│   └── (game)/                 # Jeu principal
+│       ├── _layout.tsx
+│       ├── welcome.tsx         # Accueil + intro LOG
+│       ├── map.tsx             # Carte SVG des quartiers
+│       ├── placement-test.tsx  # Test de niveau initial
+│       └── district/[id]/    # Quartiers + niveaux
+│           ├── index.tsx
+│           └── level/[levelId].tsx
 ├── components/
-│   ├── ui/                     # Boutons, badges, cards
-│   ├── game/                   # QCM, DragDrop, Prediction...
-│   ├── log/                    # Bulle LOG, avatar, modal IA
-│   └── city/                   # Carte, districts
+│   ├── game/                   # QCM (autres mécaniques : prévues)
+│   └── log/                    # LOGBubble, LOGModal
+├── constants/                  # Palette (ex. colors.ts)
 ├── store/
-│   ├── userStore.ts            # XP, level, profil
+│   ├── userStore.ts            # XP, level, placement
 │   ├── progressStore.ts        # Avancement par quartier
 │   └── streakStore.ts          # Streak quotidien
 ├── data/
-│   ├── districts.ts            # 8 quartiers de CodeCity
+│   ├── districts.ts            # Quartiers (déblocage, méta)
 │   ├── placementTest.ts        # 8 questions + scoring
-│   └── levels/                 # Niveaux par quartier
-├── lib/
-│   ├── claude.ts               # Wrapper Claude API (LOG IA)
-│   └── supabase.ts             # Client Supabase
+│   └── levels/                 # Niveaux par quartier + registry
 ├── types/
 │   └── game.ts                 # Types TypeScript globaux
-└── server/                     # Backend API REST
+└── server/                     # Backend API REST (testable à part)
     ├── prisma/
     │   ├── schema.prisma       # MPD : User, UserProgress, Streak
     │   └── seed.ts             # Données de test
     └── src/
         ├── routes/
-        │   ├── users.ts        # CRUD utilisateurs
-        │   └── progress.ts     # Progression en jeu
+        │   ├── users.ts        # GET liste/détail, POST création
+        │   └── progress.ts     # GET / POST progression
         ├── middlewares/
         │   └── errorHandler.ts # Gestion erreurs 400/404/500
-        └── index.ts            # Serveur Express port 3050
+        └── index.ts            # Serveur Express (port .env, ex. 3050)
 ```
 
 ---
@@ -109,19 +124,29 @@ Le serveur tourne sur `http://localhost:3050`.
 
 Base URL : `http://localhost:3050/api`
 
+> **Offline-first.** L'app fonctionne entièrement sans serveur : la source de
+> vérité est locale (Zustand + AsyncStorage). La synchronisation (`lib/sync.ts`)
+> est best-effort — chaque appel a un timeout court et échoue silencieusement.
+> L'URL de l'API se configure dans `app.json` → `expo.extra.apiUrl` ; sur un
+> **device physique**, remplace `localhost` par l'IP LAN de la machine.
+
 ### Utilisateurs
 
 ```
+GET    /health             → { status: "ok" } (sonde de disponibilité)
 GET    /users              → Liste tous les users
 GET    /users/:id          → Un user avec progress + streak
 POST   /users              → Crée un user { username }
+PATCH  /users/:id          → Met à jour { xp?, level?, placementLevel? }
+PUT    /users/:id/streak   → Met à jour { currentStreak, longestStreak, lastPlayedDate }
 ```
 
 ### Progression
 
 ```
 GET    /progress/:userId   → Niveaux complétés d'un user
-POST   /progress           → Enregistre un niveau { userId, districtId, levelId, stars }
+POST   /progress           → Enregistre/actualise un niveau { userId, districtId, levelId, stars }
+                             (upsert sur (userId, levelId) : rejouer un niveau ne crée pas de doublon)
 ```
 
 ### Codes d'erreur
@@ -186,7 +211,7 @@ model Streak {
 | Q5 | Bibliothèque des Listes | Tableaux & listes | 12 | V1 |
 | Q6 | Archives des Tris | Algorithmes de tri | 10 | V2 |
 | Q7 | Quartier des Miroirs | Récursivité | 10 | V2 |
-| BOSS | La Tour Centrale | Défi final | 1 | V2 |
+| BOSS | La Tour Centrale | Défi final (mécaniques mixtes) | 5 | MVP |
 
 ---
 
@@ -207,7 +232,7 @@ Au premier lancement, le joueur passe un test de 8 questions (présenté comme u
 
 LOG est l'intelligence artificielle gardienne de CodeCity. Elle guide le joueur, explique les concepts avec des analogies simples, et réagit à la progression.
 
-En production, LOG est alimentée par **Claude API** via `lib/claude.ts`. En MVP, les répliques sont pré-écrites.
+En **MVP**, les répliques de LOG sont **pré-écrites** dans l’app. En **V1**, l’intégration **Claude API** passera par un module dédié (`lib/claude.ts`, à ajouter).
 
 **Ton de LOG :** court, bienveillant, légèrement mystérieux. Jamais condescendant.
 
@@ -230,16 +255,21 @@ Retour après pause → "Bon retour. CodeCity t'attendait."
 - [x] Écran test de placement (`app/(game)/placement-test.tsx`)
 - [x] Carte de la ville + navigation quartiers (`map.tsx`, `district/[id]/`)
 - [x] Mécanique QCM + écran niveau end-to-end (`components/game/QCM.tsx`, `level/[levelId].tsx`)
-- [x] Composant LOG (bulles, modal) — répliques statiques MVP
-- [ ] Mécanique Drag & Drop (et autres types de puzzles)
-- [ ] Branchement complet app ↔ API (création user / sync progression)
+- [x] Composant LOG (bulles, modal) — répliques centralisées (`lib/claude.ts`)
+- [x] Persistance locale AsyncStorage (profil, progression, streak)
+- [x] Déblocage dynamique des quartiers (placement + progression, `data/progression.ts`)
+- [x] XP → niveau de joueur + écran de fin de quartier (`district/[id]/complete.tsx`)
+- [x] Branchement app ↔ API best-effort (création user, sync progression/streak — `lib/api.ts`, `lib/sync.ts`)
+- [x] Mécaniques variées : QCM, **prédiction** (sortie de code), **remise en ordre** de lignes, **glisser-déposer** (compléter le code)
+- [x] Boss final « Tour Centrale » (5 niveaux à mécaniques mixtes)
+- [x] Badges (1 par quartier) + écran de victoire animé
 
 ### V1.0
-- [ ] Quartiers Q1 à Q4 complets
-- [ ] LOG IA activée (Claude API)
-- [ ] Système de badges
+- [x] Quartiers Q1 à Q4 complets
+- [x] Système de badges
+- [x] Mode hors-ligne (persistance locale AsyncStorage)
+- [ ] LOG IA activée (Claude API via proxy backend)
 - [ ] Notifications push (streak)
-- [ ] Mode hors-ligne
 
 ### V2.0
 - [ ] Quartiers Q5 à Q8 + Boss
@@ -253,7 +283,7 @@ Retour après pause → "Bon retour. CodeCity t'attendait."
 
 - TypeScript strict — pas de `any`
 - Logique métier dans les hooks/stores, jamais dans les composants
-- Claude API uniquement via `lib/claude.ts`, jamais en direct
+- Future intégration Claude API : uniquement via un module `lib/claude.ts` (à créer), jamais en direct depuis les écrans
 - Données de jeu dans `data/`, jamais en dur dans les composants
 - Mobile-first — zones de touch ≥ 44px
 - `accessibilityLabel` sur tous les éléments interactifs

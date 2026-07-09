@@ -88,10 +88,14 @@ export const q7RecursiviteLevels: Level[] = [
     districtId: 'q7',
     chapter: 1,
     order: 5,
-    mechanic: 'qcm',
+    mechanic: 'prediction',
     title: 'Somme 1..n',
-    question:
-      'fonction S(n): si n==0 retour 0 sinon retour n + S(n-1). S(3) ?',
+    code: `fonction somme(n) {
+  si (n == 0) return 0
+  return n + somme(n - 1)
+}
+afficher(somme(3))`,
+    question: 'Qu’affiche ce code ?',
     answers: [
       { id: 'q7-c1-l05-a', label: '6', isCorrect: true },
       { id: 'q7-c1-l05-b', label: '3', isCorrect: false },
@@ -100,7 +104,7 @@ export const q7RecursiviteLevels: Level[] = [
     ],
     correctAnswer: 'q7-c1-l05-a',
     explanation:
-      '3 + S(2) = 3 + 2 + S(1) = … = 3+2+1+0 = 6.',
+      'somme(3) = 3 + somme(2) = 3 + 2 + somme(1) = 3 + 2 + 1 + somme(0) = 3 + 2 + 1 + 0 = 6.',
     xpReward: 10,
   },
   {
@@ -108,20 +112,21 @@ export const q7RecursiviteLevels: Level[] = [
     districtId: 'q7',
     chapter: 2,
     order: 6,
-    mechanic: 'qcm',
+    mechanic: 'drag-drop',
     title: 'Factorielle',
     story:
       'LOG : Tu comprends le principe. Maintenant les cas classiques que tout développeur connaît.',
-    question: 'n! = n × (n-1)! avec 0! = 1. Que vaut 4! ?',
-    answers: [
-      { id: 'q7-c2-l01-a', label: '24', isCorrect: true },
-      { id: 'q7-c2-l01-b', label: '16', isCorrect: false },
-      { id: 'q7-c2-l01-c', label: '10', isCorrect: false },
-      { id: 'q7-c2-l01-d', label: '4', isCorrect: false },
-    ],
-    correctAnswer: 'q7-c2-l01-a',
+    question:
+      'Complète la fonction récursive factorielle (n! = n × (n-1)!, avec 0! = 1).',
+    fillTemplate: `fonction factorielle(n) {
+  si (n ___ 0) return 1
+  return n * factorielle(n ___ 1)
+}`,
+    fillTokens: ['==', '-', '<', '+', '>'],
+    fillSolution: ['==', '-'],
+    correctAnswer: ['==', '-'],
     explanation:
-      '4×3×2×1 = 24.',
+      'Cas de base : si n vaut 0 (n == 0), on renvoie 1. Sinon on multiplie n par factorielle(n - 1), en se rapprochant de 0.',
     xpReward: 10,
   },
   {
@@ -129,18 +134,24 @@ export const q7RecursiviteLevels: Level[] = [
     districtId: 'q7',
     chapter: 2,
     order: 7,
-    mechanic: 'qcm',
+    mechanic: 'construction',
     title: 'Fibonacci (déf)',
-    question: 'F(0)=0, F(1)=1, F(n)=F(n-1)+F(n-2) pour n≥2. F(5) ?',
-    answers: [
-      { id: 'q7-c2-l02-a', label: '5', isCorrect: true },
-      { id: 'q7-c2-l02-b', label: '8', isCorrect: false },
-      { id: 'q7-c2-l02-c', label: '3', isCorrect: false },
-      { id: 'q7-c2-l02-d', label: '13', isCorrect: false },
+    question:
+      'Remets les lignes dans l’ordre de la fonction Fibonacci (F(n) = F(n-1) + F(n-2)).',
+    orderedLines: [
+      'fonction fib(n) {',
+      '  si (n < 2) return n',
+      '  return fib(n - 1) + fib(n - 2)',
+      '}',
     ],
-    correctAnswer: 'q7-c2-l02-a',
+    correctAnswer: [
+      'fonction fib(n) {',
+      '  si (n < 2) return n',
+      '  return fib(n - 1) + fib(n - 2)',
+      '}',
+    ],
     explanation:
-      'Suite : 0,1,1,2,3,5 → F(5)=5.',
+      'On ouvre la fonction, on place d’abord le cas de base (si n < 2, on renvoie n), puis l’appel récursif fib(n-1) + fib(n-2), et on referme l’accolade.',
     xpReward: 10,
   },
   {

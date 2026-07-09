@@ -31,18 +31,16 @@ export const q5ListesLevels: Level[] = [
     districtId: 'q5',
     chapter: 1,
     order: 2,
-    mechanic: 'qcm',
+    mechanic: 'drag-drop',
     title: 'Index',
-    question: 'tab = ["pain", "lait", "pommes"]. En indexant souvent à partir de 0, quel est le premier élément ?',
-    answers: [
-      { id: 'q5-c1-l02-a', label: 'pain (tab[0])', isCorrect: true },
-      { id: 'q5-c1-l02-b', label: 'lait (tab[1])', isCorrect: false },
-      { id: 'q5-c1-l02-c', label: 'pommes (tab[0])', isCorrect: false },
-      { id: 'q5-c1-l02-d', label: 'Aucun : le premier index est toujours 1 partout', isCorrect: false },
-    ],
-    correctAnswer: 'q5-c1-l02-a',
+    question: 'Complète pour lire le premier élément (« pain »).',
+    fillTemplate: `tab = ["pain", "lait", "pommes"]
+premier = tab[___]`,
+    fillTokens: ['0', '1', '2', '-1'],
+    fillSolution: ['0'],
+    correctAnswer: ['0'],
     explanation:
-      'Beaucoup de langages commencent l’index à 0 ; le premier élément est tab[0].',
+      'L’index commence souvent à 0 : tab[0] vaut « pain », le tout premier élément.',
     xpReward: 10,
   },
   {
@@ -50,9 +48,11 @@ export const q5ListesLevels: Level[] = [
     districtId: 'q5',
     chapter: 1,
     order: 3,
-    mechanic: 'qcm',
+    mechanic: 'prediction',
     title: 'Longueur',
-    question: 'scores = [10, 20, 30]. La longueur (nombre d’éléments) vaut ?',
+    code: `scores = [10, 20, 30]
+afficher(longueur(scores))`,
+    question: 'Qu’affiche ce code ?',
     answers: [
       { id: 'q5-c1-l03-a', label: '3', isCorrect: true },
       { id: 'q5-c1-l03-b', label: '60', isCorrect: false },
@@ -61,7 +61,7 @@ export const q5ListesLevels: Level[] = [
     ],
     correctAnswer: 'q5-c1-l03-a',
     explanation:
-      'Longueur = combien de cases, pas la somme des nombres dedans.',
+      'longueur compte les cases (3 éléments), pas la somme des valeurs.',
     xpReward: 10,
   },
   {
@@ -165,19 +165,24 @@ export const q5ListesLevels: Level[] = [
     districtId: 'q5',
     chapter: 3,
     order: 9,
-    mechanic: 'qcm',
+    mechanic: 'construction',
     title: 'Parcours',
     story: 'LOG : Inventaire complet : il faut tout scanner sans perdre une case.',
-    question: 'Pour visiter chaque élément d’un tableau dans l’ordre, on utilise souvent :',
-    answers: [
-      { id: 'q5-c3-l01-a', label: 'Une boucle sur les indices ou sur les éléments', isCorrect: true },
-      { id: 'q5-c3-l01-b', label: 'Un seul if sans répétition', isCorrect: false },
-      { id: 'q5-c3-l01-c', label: 'Un return seul', isCorrect: false },
-      { id: 'q5-c3-l01-d', label: 'L’opérateur != seul', isCorrect: false },
+    question: 'Remets les lignes dans l’ordre pour additionner tous les scores.',
+    orderedLines: [
+      'total = 0',
+      'pour chaque x dans scores:',
+      '  total = total + x',
+      'afficher(total)',
     ],
-    correctAnswer: 'q5-c3-l01-a',
+    correctAnswer: [
+      'total = 0',
+      'pour chaque x dans scores:',
+      '  total = total + x',
+      'afficher(total)',
+    ],
     explanation:
-      'La boucle et le tableau vont ensemble : chaque tour, un élément.',
+      'On part de 0, on ajoute chaque élément pendant le parcours, puis on affiche la somme.',
     xpReward: 10,
   },
   {
