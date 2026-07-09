@@ -13,10 +13,10 @@ const MOOD_AVATAR_TEXT: Record<
   'neutral' | 'positive' | 'negative' | 'mysterious',
   string
 > = {
-  neutral: '#FFFFFF',
-  positive: '#1D9E75',
-  negative: '#E24B4A',
-  mysterious: '#7F77DD',
+  neutral: '#F5F4FF',
+  positive: '#22C08A',
+  negative: '#FF6B6B',
+  mysterious: '#8B83F0',
 };
 
 export interface LOGBubbleProps {
@@ -56,7 +56,7 @@ const arrowStyles = StyleSheet.create({
     borderRightWidth: 10,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderRightColor: '#1a1a2e',
+    borderRightColor: '#141334',
   },
 });
 
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#12121f',
+    backgroundColor: '#1A1842',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -167,13 +167,13 @@ const styles = StyleSheet.create({
   },
   bubble: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#141334',
     borderRadius: 12,
     padding: 12,
     minWidth: 0,
   },
   messageText: {
-    color: '#FFFFFF',
+    color: '#F5F4FF',
     fontSize: 14,
     lineHeight: 20,
     fontFamily: monoFamily,
