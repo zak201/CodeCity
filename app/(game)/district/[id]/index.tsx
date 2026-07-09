@@ -32,6 +32,10 @@ export default function DistrictScreen() {
     (districtId) => byDistrict[districtId]?.completedLevels.length ?? 0
   );
 
+  const districtProgress = byDistrict[id];
+  const completedIds = districtProgress?.completedLevels ?? [];
+  const starsById = districtProgress?.stars ?? {};
+
   if (district && !unlocked) {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -102,29 +106,58 @@ export default function DistrictScreen() {
           </View>
         ) : (
           <View style={styles.list}>
-            {levels.map((level) => (
-              <Pressable
-                key={level.id}
-                onPress={() =>
-                  router.push(`/(game)/district/${id}/level/${level.id}`)
-                }
-                accessibilityLabel={`Niveau : ${level.title}`}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.levelRow,
-                  pressed && styles.levelRowPressed,
-                ]}
-              >
-                <Text style={styles.levelOrder}>{level.order}</Text>
-                <View style={styles.levelBody}>
-                  <Text style={styles.levelTitle}>{level.title}</Text>
-                  <Text style={styles.levelHint} numberOfLines={1}>
-                    {level.question}
+            {levels.map((level) => {
+              const done = completedIds.includes(level.id);
+              const stars = starsById[level.id] ?? 0;
+              return (
+                <Pressable
+                  key={level.id}
+                  onPress={() =>
+                    router.push(`/(game)/district/${id}/level/${level.id}`)
+                  }
+                  accessibilityLabel={
+                    done
+                      ? `Niveau : ${level.title}, complété, ${stars} étoiles. Rejouable.`
+                      : `Niveau : ${level.title}`
+                  }
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.levelRow,
+                    done && styles.levelRowDone,
+                    pressed && styles.levelRowPressed,
+                  ]}
+                >
+                  <Text
+                    style={[styles.levelOrder, done && styles.levelOrderDone]}
+                  >
+                    {done ? '✓' : level.order}
                   </Text>
-                </View>
-                <Text style={styles.chev}>›</Text>
-              </Pressable>
-            ))}
+                  <View style={styles.levelBody}>
+                    <Text
+                      style={[styles.levelTitle, done && styles.textDone]}
+                    >
+                      {level.title}
+                    </Text>
+                    <Text
+                      style={[styles.levelHint, done && styles.textDone]}
+                      numberOfLines={1}
+                    >
+                      {level.question}
+                    </Text>
+                  </View>
+                  {done ? (
+                    <Text style={styles.stars}>
+                      {'★'.repeat(stars)}
+                      <Text style={styles.starsEmpty}>
+                        {'★'.repeat(Math.max(0, 3 - stars))}
+                      </Text>
+                    </Text>
+                  ) : (
+                    <Text style={styles.chev}>›</Text>
+                  )}
+                </Pressable>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -187,11 +220,31 @@ const styles = StyleSheet.create({
   levelRowPressed: {
     opacity: 0.92,
   },
+  /** Niveau déjà réussi : grisé, mais toujours rejouable. */
+  levelRowDone: {
+    backgroundColor: COLORS.bg,
+    borderColor: COLORS.trackOff,
+  },
   levelOrder: {
     color: COLORS.neonPurple,
     fontSize: 18,
     fontWeight: '800',
     width: 28,
+  },
+  levelOrderDone: {
+    color: COLORS.neonGreen,
+  },
+  textDone: {
+    color: COLORS.textMuted,
+  },
+  stars: {
+    color: COLORS.neonAmber,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  starsEmpty: {
+    color: COLORS.trackOff,
   },
   levelBody: {
     flex: 1,
