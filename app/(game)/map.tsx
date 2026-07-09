@@ -199,10 +199,12 @@ function HeaderBar({
   xp,
   streak,
   badges,
+  onOpenProfile,
 }: {
   xp: number;
   streak: number;
   badges: number;
+  onOpenProfile: () => void;
 }) {
   const c = useThemeColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -214,6 +216,15 @@ function HeaderBar({
         CODECITY
       </Text>
       <View style={styles.headerStats}>
+        <Pressable
+          onPress={onOpenProfile}
+          accessibilityLabel="Voir mon profil et mes badges"
+          accessibilityRole="button"
+          hitSlop={8}
+          style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={styles.profileIcon}>👤</Text>
+        </Pressable>
         <Text style={styles.headerXp}>{xp} XP</Text>
         {badges > 0 ? (
           <View style={styles.badgePill} accessibilityLabel={`${badges} badges`}>
@@ -392,7 +403,12 @@ export default function CityMapScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.root}>
-        <HeaderBar xp={xp} streak={currentStreak} badges={earnedBadges.length} />
+        <HeaderBar
+          xp={xp}
+          streak={currentStreak}
+          badges={earnedBadges.length}
+          onOpenProfile={() => router.push('/(game)/profile')}
+        />
 
         {needsPlacement ? (
           <RecruitmentBanner
@@ -603,7 +619,10 @@ const makeStyles = (c: ThemePalette) => StyleSheet.create({
   headerStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    flexShrink: 1,
+    gap: 10,
   },
   headerXp: {
     fontFamily: monoFamily as string,
@@ -650,6 +669,19 @@ const makeStyles = (c: ThemePalette) => StyleSheet.create({
     borderColor: c.trackOn,
   },
   themeIcon: {
+    fontSize: 15,
+  },
+  profileBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.bgCard,
+    borderWidth: 1,
+    borderColor: c.trackOn,
+  },
+  profileIcon: {
     fontSize: 15,
   },
   streakIcon: {
