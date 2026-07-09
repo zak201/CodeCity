@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -12,7 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { LOGBubble } from '../../components/log/LOGBubble';
-import { COLORS } from '../../constants/colors';
+import type { ThemePalette } from '../../constants/palette';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import {
   computePlacementLevel,
   getStartingDistrict,
@@ -77,6 +78,8 @@ interface ProgressBarProps {
 }
 
 function ProgressBar({ current, total }: ProgressBarProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const pct = total > 0 ? (current / total) * 100 : 0;
   return (
     <View style={styles.progressWrapper}>
@@ -98,16 +101,18 @@ interface AnswerGridProps {
 }
 
 function AnswerGrid({ answers, feedback, disabled, onSelect }: AnswerGridProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.grid}>
       {answers.map((answer) => {
-        let borderColor: string = COLORS.neonPurple;
-        let textColor: string = COLORS.textSecondary;
+        let borderColor: string = c.neonPurple;
+        let textColor: string = c.textSecondary;
 
         if (feedback) {
           if (answer.isCorrect) {
-            borderColor = COLORS.neonGreen;
-            textColor = COLORS.neonGreen;
+            borderColor = c.neonGreen;
+            textColor = c.neonGreen;
           } else if (
             answer.id === feedback.selectedId &&
             !feedback.isCorrect
@@ -146,6 +151,8 @@ interface ResultScreenProps {
 }
 
 function ResultScreen({ level, onStart }: ResultScreenProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const districtId = getStartingDistrict(level);
   const district = districts.find((d) => d.id === districtId);
 
@@ -186,6 +193,8 @@ function ResultScreen({ level, onStart }: ResultScreenProps) {
 // ---------------------------------------------------------------------------
 
 export default function PlacementTestScreen() {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const setPlacementLevel = useUserStore((s) => s.actions.setPlacementLevel);
 
@@ -378,10 +387,10 @@ export default function PlacementTestScreen() {
 // Styles
 // ---------------------------------------------------------------------------
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: c.bg,
   },
   topBar: {
     paddingHorizontal: 12,
@@ -398,7 +407,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   backBtnText: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 28,
     fontWeight: '600',
   },
@@ -414,7 +423,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   progressLabel: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
@@ -423,15 +432,15 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 6,
-    backgroundColor: COLORS.trackOff,
+    backgroundColor: c.trackOff,
     borderRadius: 3,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
   },
   progressFill: {
     height: 6,
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
     borderRadius: 3,
   },
 
@@ -441,7 +450,7 @@ const styles = StyleSheet.create({
 
   // Question
   questionText: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 26,
@@ -483,7 +492,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.neonPurple,
+    borderColor: c.neonPurple,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -493,7 +502,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   nextBtnText: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 16,
     fontWeight: '700',
     fontFamily: mono as string,
@@ -506,7 +515,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   resultTitle: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 28,
     fontWeight: '800',
     textAlign: 'center',
@@ -514,10 +523,10 @@ const styles = StyleSheet.create({
     fontFamily: mono as string,
   },
   districtCard: {
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     paddingHorizontal: 20,
     paddingVertical: 18,
     alignItems: 'center',
@@ -525,25 +534,25 @@ const styles = StyleSheet.create({
     marginBottom: 36,
   },
   districtName: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 4,
     fontFamily: mono as string,
   },
   districtConcept: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     fontFamily: mono as string,
   },
   startBtn: {
-    backgroundColor: COLORS.neonGreen,
+    backgroundColor: c.neonGreen,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     minHeight: 52,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
   },
   startBtnPressed: {
     opacity: 0.85,

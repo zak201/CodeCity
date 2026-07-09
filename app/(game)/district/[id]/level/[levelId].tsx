@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,7 +9,8 @@ import { Prediction } from '../../../../../components/game/Prediction';
 import { QCM } from '../../../../../components/game/QCM';
 import { LOGBubble } from '../../../../../components/log/LOGBubble';
 import { LOGModal } from '../../../../../components/log/LOGModal';
-import { COLORS } from '../../../../../constants/colors';
+import { useThemeColors } from '../../../../../hooks/useThemeColors';
+import type { ThemePalette } from '../../../../../constants/palette';
 import { districts } from '../../../../../data/districts';
 import { getChapterTitle } from '../../../../../data/levels/chapterTitles';
 import {
@@ -31,6 +32,8 @@ function normalizeParam(p: string | string[] | undefined): string {
 }
 
 export default function LevelScreen() {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const router = useRouter();
   const { id: rawDistrictId, levelId: rawLevelId } = useLocalSearchParams<{
     id: string;
@@ -254,10 +257,10 @@ export default function LevelScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: c.bg,
   },
   scroll: {
     paddingHorizontal: 20,
@@ -277,7 +280,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   backLabel: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -287,32 +290,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 22,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
   },
   helpPressed: {
     opacity: 0.85,
   },
   helpLabel: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 20,
     fontWeight: '800',
   },
   screenTitle: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 4,
   },
   chapterLine: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 6,
   },
   districtMeta: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     marginBottom: 20,
   },
@@ -323,7 +326,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   fallback: {
-    color: COLORS.textMuted,
+    color: c.textMuted,
     fontSize: 15,
   },
   errorWrap: {
@@ -332,21 +335,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   errorTitle: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 10,
     textAlign: 'center',
   },
   errorBody: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
     marginBottom: 24,
   },
   primaryBtn: {
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',

@@ -2,8 +2,8 @@
  * CodeCity — Design tokens « Néon Bienveillant / Aurora City ».
  *
  * Système à 3 couches : primitives -> sémantique (mode nuit + jour) -> concepts.
- * Additif et non-cassant : `constants/colors.ts` (COLORS) reste valide pendant
- * la migration progressive des écrans vers ces tokens.
+ * Les écrans consomment les couleurs de façon réactive via
+ * `hooks/useThemeColors` (voir `constants/palette.ts` pour les modes jour/nuit).
  *
  * Objectif : garder l'ADN ville-de-code néon, mais plus chaleureux, plus lisible
  * et adapté aux enfants COMME aux adultes.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 
-import { COLORS } from '../../constants/colors';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import type { ThemePalette } from '../../constants/palette';
 import type { Answer } from '../../types/game';
 
 const mono = Platform.select({
@@ -41,6 +42,9 @@ export function QCM({
   onComplete,
   onHintUsed,
 }: QCMProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   const [phase, setPhase] = useState<Phase>('idle');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hintVisible, setHintVisible] = useState(false);
@@ -157,14 +161,14 @@ export function QCM({
 
       <View style={styles.grid}>
         {answers.map((answer) => {
-          let borderColor: string = COLORS.trackOn;
-          let textColor: string = COLORS.textSecondary;
+          let borderColor: string = c.trackOn;
+          let textColor: string = c.textSecondary;
           let backgroundColor: string = 'transparent';
 
           if (phase === 'answered') {
             if (answer.isCorrect) {
-              borderColor = COLORS.neonGreen;
-              textColor = COLORS.neonGreen;
+              borderColor = c.neonGreen;
+              textColor = c.neonGreen;
             }
             if (answer.id === selectedId && !answer.isCorrect) {
               borderColor = INCORRECT_RED;
@@ -236,17 +240,17 @@ export function QCM({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   wrapper: {
     width: '100%',
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     borderRadius: 14,
     padding: 18,
   },
   question: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 26,
@@ -268,7 +272,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -279,7 +283,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   hintBtnText: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 18,
     fontWeight: '800',
     fontFamily: mono as string,
@@ -287,7 +291,7 @@ const styles = StyleSheet.create({
   hintText: {
     flex: 1,
     minWidth: 120,
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: mono as string,
@@ -314,7 +318,7 @@ const styles = StyleSheet.create({
   },
   flashOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
   },
   answerPressed: {
     opacity: 0.92,
@@ -329,7 +333,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   explainText: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 15,
     lineHeight: 22,
     fontFamily: mono as string,
@@ -337,10 +341,10 @@ const styles = StyleSheet.create({
   continueBtn: {
     marginTop: 20,
     minHeight: 48,
-    backgroundColor: COLORS.trackOn,
+    backgroundColor: c.trackOn,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.neonPurple,
+    borderColor: c.neonPurple,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -349,7 +353,7 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
   continueBtnText: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '700',
     fontFamily: mono as string,

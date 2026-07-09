@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Platform, ScrollView, StyleSheet, Text } from 'react-native';
 
-import { COLORS } from '../../constants/colors';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import type { ThemePalette } from '../../constants/palette';
 
 const mono = Platform.select({
   ios: 'Menlo',
@@ -14,6 +16,9 @@ export interface CodeBlockProps {
 
 /** Bloc de code monospace, défilable horizontalement pour les lignes longues. */
 export function CodeBlock({ code }: CodeBlockProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   return (
     <ScrollView
       horizontal
@@ -28,11 +33,11 @@ export function CodeBlock({ code }: CodeBlockProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   wrap: {
     backgroundColor: '#05050f',
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     borderRadius: 10,
     marginBottom: 16,
   },
@@ -40,7 +45,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   code: {
-    color: COLORS.neonGreen,
+    color: c.neonGreen,
     fontSize: 14,
     lineHeight: 22,
     fontFamily: mono as string,

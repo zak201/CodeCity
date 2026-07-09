@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 
-import { COLORS } from '../../constants/colors';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import type { ThemePalette } from '../../constants/palette';
 
 const mono = Platform.select({
   ios: 'Menlo',
@@ -43,6 +44,9 @@ export function FillBlanks({
   onComplete,
   onHintUsed,
 }: FillBlanksProps) {
+  const c = useThemeColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   const segments = useMemo(() => template.split('___'), [template]);
   const blankCount = Math.max(0, segments.length - 1);
 
@@ -147,10 +151,10 @@ export function FillBlanks({
 
   const blankBorder =
     phase === 'correct'
-      ? COLORS.neonGreen
+      ? c.neonGreen
       : phase === 'wrong'
         ? INCORRECT_RED
-        : COLORS.neonPurple;
+        : c.neonPurple;
 
   return (
     <View style={styles.wrapper}>
@@ -292,17 +296,17 @@ export function FillBlanks({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemePalette) => StyleSheet.create({
   wrapper: {
     width: '100%',
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: c.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     borderRadius: 14,
     padding: 18,
   },
   question: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: '600',
     lineHeight: 26,
@@ -321,12 +325,12 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     alignItems: 'center',
     justifyContent: 'center',
   },
   hintBtnText: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 18,
     fontWeight: '800',
     fontFamily: mono as string,
@@ -334,7 +338,7 @@ const styles = StyleSheet.create({
   hintText: {
     flex: 1,
     minWidth: 120,
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: mono as string,
@@ -345,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#05050f',
     borderWidth: 1,
-    borderColor: COLORS.trackOn,
+    borderColor: c.trackOn,
     borderRadius: 10,
     padding: 14,
     marginBottom: 16,
@@ -355,7 +359,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   codeText: {
-    color: COLORS.neonGreen,
+    color: c.neonGreen,
     fontSize: 14,
     lineHeight: 26,
     fontFamily: mono as string,
@@ -371,7 +375,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   blankText: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     fontWeight: '700',
     fontFamily: mono as string,
@@ -387,29 +391,29 @@ const styles = StyleSheet.create({
     minWidth: 44,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.neonPurple,
+    borderColor: c.neonPurple,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tokenUsed: {
-    borderColor: COLORS.trackOff,
-    backgroundColor: COLORS.trackOff,
+    borderColor: c.trackOff,
+    backgroundColor: c.trackOff,
   },
   tokenText: {
-    color: COLORS.neonPurple,
+    color: c.neonPurple,
     fontSize: 16,
     fontWeight: '800',
     fontFamily: mono as string,
   },
   tokenTextUsed: {
-    color: COLORS.textMuted,
+    color: c.textMuted,
   },
   explainWrap: {
     marginBottom: 16,
   },
   explainText: {
-    color: COLORS.textSecondary,
+    color: c.textSecondary,
     fontSize: 15,
     lineHeight: 22,
     fontFamily: mono as string,
@@ -420,10 +424,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    backgroundColor: COLORS.neonPurple,
+    backgroundColor: c.neonPurple,
   },
   actionBtnText: {
-    color: COLORS.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '800',
     fontFamily: mono as string,
@@ -432,11 +436,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.neonPurple,
+    borderColor: c.neonPurple,
   },
   continueBtn: {
     flex: 1,
-    backgroundColor: COLORS.trackOn,
+    backgroundColor: c.trackOn,
   },
   wrongActions: {
     flexDirection: 'row',
