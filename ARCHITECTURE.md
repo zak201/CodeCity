@@ -44,6 +44,8 @@
 ```env
 PORT=3050
 DATABASE_URL="file:./dev.db"
+ANTHROPIC_API_KEY=sk-ant-...   # LOG IA ; vide = repli sur base locale
+LOG_MODEL=claude-haiku-4-5     # modèle Claude pour LOG (optionnel)
 ```
 
 **`.env` (racine — à créer pour la prod)**
@@ -166,9 +168,9 @@ SQLite est utilisé en local pour sa simplicité (pas de serveur à lancer). La 
 
 ### Service IA — LOG
 
-**État actuel (MVP) :** les réponses de LOG proviennent d'une **base de connaissances locale** centralisée dans `lib/claude.ts` (mots-clés → explication par concept), consommée par `components/log/*`. Aucun appel réseau.
+**Implémenté :** LOG interroge l'**API Claude** (Anthropic, `@anthropic-ai/sdk`, modèle `claude-haiku-4-5` par défaut). Tout passe par `lib/claude.ts` — jamais d'appel IA depuis un composant d'écran. Le front appelle `askLog()` → `POST /api/log/ask` → le backend relaie vers Claude. La clé `ANTHROPIC_API_KEY` reste **strictement côté serveur** (`server/src/anthropic.ts`), jamais embarquée dans l'app.
 
-**Cible V1 :** intégration **Claude API** (Anthropic). Les appels réseau seront centralisés dans un module dédié (`lib/claude.ts`, à ajouter) — jamais directement depuis les composants d’écran.
+**Offline-first :** si le serveur est injoignable, répond `503` (clé absente) ou dépasse le timeout, `askLog()` retombe silencieusement sur une **base de connaissances locale** (mots-clés → explication par concept). L'app reste utile et pédagogique sans réseau.
 
 ---
 
@@ -330,6 +332,14 @@ Base URL (développement) : `http://localhost:3050/api`
 |---|---|---|---|---|
 | GET | `/progress/:userId` | Niveaux complétés | — | `UserProgress[]` |
 | POST | `/progress` | Enregistrer un niveau | `{ userId, districtId, levelId, stars }` | `UserProgress` créé |
+
+### IA — LOG (tuteur)
+
+| Méthode | Route | Description | Body | Réponse |
+|---|---|---|---|---|
+| POST | `/log/ask` | Relaie la question du joueur à Claude (clé côté serveur) | `{ concept, question }` | `{ answer }` |
+
+> `503` si `ANTHROPIC_API_KEY` absente → l'app bascule sur sa base de connaissances locale.
 
 ### Gestion des erreurs
 
