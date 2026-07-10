@@ -44,6 +44,7 @@
 ```env
 PORT=3050
 DATABASE_URL="file:./dev.db"
+JWT_SECRET=change-me-long-random   # signature des jetons JWT (auth)
 ANTHROPIC_API_KEY=sk-ant-...   # LOG IA ; vide = repli sur base locale
 LOG_MODEL=claude-haiku-4-5     # modèle Claude pour LOG (optionnel)
 ```
@@ -144,6 +145,9 @@ SQLite est utilisé en local pour sa simplicité (pas de serveur à lancer). La 
 ├─────────────────────┤
 │ id (PK, cuid)       │
 │ username (unique)   │
+│ email (unique)      │
+│ passwordHash        │
+│ role (user/admin)   │
 │ xp                  │
 │ level               │
 │ placementLevel      │
@@ -318,20 +322,31 @@ export function DistrictCard({ district, progress, onPress }: DistrictCardProps)
 
 Base URL (développement) : `http://localhost:3050/api`
 
-### Utilisateurs
+### Auth (JWT)
 
 | Méthode | Route | Description | Body | Réponse |
 |---|---|---|---|---|
-| GET | `/users` | Liste tous les users | — | `User[]` |
-| GET | `/users/:id` | Un user + progress + streak | — | `User` avec relations |
-| POST | `/users` | Créer un user | `{ username }` | `User` créé |
+| POST | `/auth/register` | Inscription (hash bcrypt) | `{ email, username, password }` | `{ token, user }` |
+| POST | `/auth/login` | Connexion | `{ email, password }` | `{ token, user }` |
+| GET | `/auth/me` | Profil du user connecté | — (Bearer) | `{ user, progresses, streak }` |
 
-### Progression
+### Joueur connecté — `/me` (Bearer token requis)
 
 | Méthode | Route | Description | Body | Réponse |
 |---|---|---|---|---|
-| GET | `/progress/:userId` | Niveaux complétés | — | `UserProgress[]` |
-| POST | `/progress` | Enregistrer un niveau | `{ userId, districtId, levelId, stars }` | `UserProgress` créé |
+| PATCH | `/me` | MAJ xp / niveau / placement | `{ xp?, level?, placementLevel? }` | user (partiel) |
+| GET | `/me/progress` | Niveaux complétés | — | `UserProgress[]` |
+| POST | `/me/progress` | Upsert d'un niveau | `{ districtId, levelId, stars }` | `UserProgress` |
+| PUT | `/me/streak` | MAJ série | `{ currentStreak, longestStreak, lastPlayedDate }` | `Streak` |
+
+> L'utilisateur est dérivé du token, jamais d'un id fourni par le client.
+
+### Admin (rôle `admin` requis)
+
+| Méthode | Route | Description | Body | Réponse |
+|---|---|---|---|---|
+| GET | `/users` | Liste des utilisateurs (sans hash) | — (Bearer admin) | `User[]` |
+| GET | `/users/:id` | Un user + relations | — (Bearer admin) | `User` |
 
 ### IA — LOG (tuteur)
 
@@ -344,14 +359,20 @@ Base URL (développement) : `http://localhost:3050/api`
 ### Gestion des erreurs
 
 ```json
-// 400 — Champ manquant
-{ "error": "Le champ username est requis" }
+// 400 — Champ manquant / invalide
+{ "error": "Email invalide" }
+
+// 401 — Token absent, invalide ou expiré
+{ "error": "Token invalide ou expiré" }
+
+// 403 — Rôle insuffisant
+{ "error": "Accès réservé au rôle « admin »" }
 
 // 404 — Ressource introuvable
 { "error": "Utilisateur introuvable" }
 
-// 409 — Conflit (username déjà pris)
-{ "error": "Ce nom d'utilisateur est déjà pris" }
+// 409 — Conflit
+{ "error": "Email ou nom d'utilisateur déjà utilisé" }
 
 // 500 — Erreur interne
 { "error": "Erreur interne du serveur" }

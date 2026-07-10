@@ -17,7 +17,7 @@ import { districts } from '../../data/districts';
 import { computeLockState, getEarnedBadges } from '../../data/progression';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { creditSkippedDistricts } from '../../lib/placementRewards';
-import { ensureUser, syncStreak } from '../../lib/sync';
+import { syncStreak } from '../../lib/sync';
 import { useProgressStore } from '../../store/progressStore';
 import { useStreakStore } from '../../store/streakStore';
 import { useThemeStore } from '../../store/themeStore';
@@ -286,6 +286,9 @@ export default function CityMapScreen() {
   const byDistrict = useProgressStore((s) => s.byDistrict);
   const currentStreak = useStreakStore((s) => s.currentStreak);
   const recordPlay = useStreakStore((s) => s.actions.recordPlay);
+  const userHydrated = useUserStore((s) => s._hasHydrated);
+  const progressHydrated = useProgressStore((s) => s._hasHydrated);
+  const streakHydrated = useStreakStore((s) => s._hasHydrated);
 
   const completedCountOf = useCallback(
     (districtId: string) =>
@@ -305,16 +308,23 @@ export default function CityMapScreen() {
 
   useEffect(() => {
     if (placementLevel === null) return;
+    // Attendre l'hydratation des 3 stores : sinon `creditSkippedDistricts`
+    // (lit progressStore) re-crédite l'XP, et `recordPlay` (streakStore) peut
+    // écraser la série au démarrage à froid, avant la rehydratation.
+    if (!userHydrated || !progressHydrated || !streakHydrated) return;
     // Rattrapage : crédite les quartiers sautés au placement (idempotent).
     creditSkippedDistricts(placementLevel);
     recordPlay();
-    // Synchronisation best-effort : crée le compte serveur si besoin, puis
-    // pousse le streak. N'interrompt jamais le jeu en cas d'échec réseau.
-    void (async () => {
-      await ensureUser();
-      void syncStreak();
-    })();
-  }, [placementLevel, recordPlay]);
+    // Synchronisation best-effort : si un compte est connecté, pousse la
+    // série. N'interrompt jamais le jeu (hors-ligne / non connecté = no-op).
+    void syncStreak();
+  }, [
+    placementLevel,
+    recordPlay,
+    userHydrated,
+    progressHydrated,
+    streakHydrated,
+  ]);
 
   const needsPlacement = placementLevel === null;
 

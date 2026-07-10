@@ -57,8 +57,11 @@ export const useUserStore = create<UserStore>()(
         level: state.level,
         placementLevel: state.placementLevel,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.actions.setHasHydrated(true);
+      // Marque l'hydratation terminée quoi qu'il arrive (même si `state` est
+      // absent après un échec de rehydratation), sinon l'app resterait bloquée
+      // sur le splash (app/index.tsx attend ce drapeau pour rediriger).
+      onRehydrateStorage: () => () => {
+        useUserStore.getState().actions.setHasHydrated(true);
       },
     }
   )

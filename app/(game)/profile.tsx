@@ -12,6 +12,7 @@ import {
   xpToNextLevel,
 } from '../../data/progression';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { useAuthStore } from '../../store/authStore';
 import { useProgressStore } from '../../store/progressStore';
 import { useStreakStore } from '../../store/streakStore';
 import { useUserStore } from '../../store/userStore';
@@ -37,6 +38,9 @@ export default function ProfileScreen() {
   const getDistrictStars = useProgressStore((s) => s.actions.getDistrictStars);
   const currentStreak = useStreakStore((s) => s.currentStreak);
   const longestStreak = useStreakStore((s) => s.longestStreak);
+  const authUser = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const logout = useAuthStore((s) => s.actions.logout);
 
   const completedCountOf = (id: string) =>
     byDistrict[id]?.completedLevels.length ?? 0;
@@ -93,6 +97,52 @@ export default function ProfileScreen() {
           <Text style={styles.xpMeta}>
             {xp} XP · encore {remaining} avant le niveau {level + 1}
           </Text>
+        </View>
+
+        {/* Compte : connexion optionnelle (synchro de la progression) */}
+        <View style={styles.card}>
+          {token && authUser ? (
+            <>
+              <Text style={styles.accountLabel}>Connecté</Text>
+              <Text style={styles.accountValue} numberOfLines={1}>
+                {authUser.email ?? authUser.username}
+                {authUser.role === 'admin' ? '  ·  admin' : ''}
+              </Text>
+              <Pressable
+                onPress={logout}
+                accessibilityLabel="Se déconnecter"
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.accountBtn,
+                  styles.logoutBtn,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.logoutText}>Se déconnecter</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.accountLabel}>Compte</Text>
+              <Text style={styles.accountHint}>
+                Connecte-toi pour sauvegarder ta progression et la retrouver sur
+                un autre appareil.
+              </Text>
+              <Pressable
+                onPress={() => router.push('/(game)/auth')}
+                accessibilityLabel="Se connecter ou créer un compte"
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.accountBtn,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.accountBtnText}>
+                  Se connecter / Créer un compte
+                </Text>
+              </Pressable>
+            </>
+          )}
         </View>
 
         {/* Stats rapides */}
@@ -282,4 +332,39 @@ const makeStyles = (c: ThemePalette) =>
       fontSize: 13,
       fontWeight: '700',
     },
+    accountLabel: {
+      color: c.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 6,
+    },
+    accountValue: {
+      color: c.textPrimary,
+      fontSize: 16,
+      fontWeight: '700',
+      marginBottom: 14,
+    },
+    accountHint: {
+      color: c.textSecondary,
+      fontSize: 14,
+      lineHeight: 20,
+      marginBottom: 14,
+    },
+    accountBtn: {
+      minHeight: 48,
+      borderRadius: 12,
+      backgroundColor: c.neonPurple,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    accountBtnText: { color: '#0B0A1E', fontSize: 15, fontWeight: '800' },
+    logoutBtn: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: c.trackOn,
+    },
+    logoutText: { color: c.textSecondary, fontSize: 15, fontWeight: '700' },
   });

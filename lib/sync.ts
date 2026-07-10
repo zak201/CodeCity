@@ -1,37 +1,22 @@
+import { useAuthStore } from '../store/authStore';
+import { useProgressStore } from '../store/progressStore';
 import { useStreakStore } from '../store/streakStore';
 import { useUserStore } from '../store/userStore';
-import { api } from './api';
+import { meApi } from './api';
 
 /**
  * Synchronisation « best-effort » entre les stores locaux et le backend.
- * Toutes les fonctions sont non-bloquantes : à appeler avec `void ...`.
- * En cas d'échec réseau, l'app continue normalement (la source de vérité
- * reste locale + persistée via AsyncStorage).
+ * Toutes les fonctions sont non-bloquantes (`void ...`) et ne font RIEN si le
+ * joueur n'est pas connecté : la source de vérité reste locale (offline-first),
+ * la synchro n'est active que sur un compte authentifié (JWT).
  */
 
-function generateUsername(): string {
-  const suffix = Date.now().toString(36).slice(-5);
-  return `architect-${suffix}`;
-}
-
-/** Crée le compte serveur au premier lancement (une seule fois). */
-export async function ensureUser(): Promise<void> {
-  const state = useUserStore.getState();
-  if (state.userId) return;
-
-  const created = await api.createUser(generateUsername());
-  if (created?.id) {
-    state.actions.setIdentity(created.id, created.username);
-    // Pousse l'état déjà accumulé localement.
-    void syncUser();
-  }
-}
-
-/** Envoie XP / niveau / placement vers le serveur. */
+/** Envoie XP / niveau / placement vers le compte connecté. */
 export async function syncUser(): Promise<void> {
-  const { userId, xp, level, placementLevel } = useUserStore.getState();
-  if (!userId) return;
-  await api.patchUser(userId, { xp, level, placementLevel });
+  const token = useAuthStore.getState().token;
+  if (!token) return;
+  const { xp, level, placementLevel } = useUserStore.getState();
+  await meApi.patchMe(token, { xp, level, placementLevel });
 }
 
 /** Enregistre la complétion d'un niveau (upsert côté serveur). */
@@ -40,16 +25,34 @@ export async function syncProgress(
   levelId: string,
   stars: number
 ): Promise<void> {
-  const { userId } = useUserStore.getState();
-  if (!userId) return;
-  await api.postProgress({ userId, districtId, levelId, stars });
+  const token = useAuthStore.getState().token;
+  if (!token) return;
+  await meApi.postProgress(token, { districtId, levelId, stars });
 }
 
-/** Envoie l'état de streak courant. */
+/** Envoie l'état de série (streak) courant. */
 export async function syncStreak(): Promise<void> {
-  const { userId } = useUserStore.getState();
-  if (!userId) return;
+  const token = useAuthStore.getState().token;
+  if (!token) return;
   const { currentStreak, longestStreak, lastPlayedDate } =
     useStreakStore.getState();
-  await api.putStreak(userId, { currentStreak, longestStreak, lastPlayedDate });
+  await meApi.putStreak(token, { currentStreak, longestStreak, lastPlayedDate });
+}
+
+/**
+ * Pousse toute la progression locale vers le compte, juste après connexion,
+ * pour « réclamer » la partie jouée hors-ligne. Best-effort.
+ */
+export async function pushLocalToServer(): Promise<void> {
+  const token = useAuthStore.getState().token;
+  if (!token) return;
+  await syncUser();
+  await syncStreak();
+  const byDistrict = useProgressStore.getState().byDistrict;
+  for (const [districtId, dp] of Object.entries(byDistrict)) {
+    for (const levelId of dp.completedLevels) {
+      const stars = dp.stars[levelId] ?? 1;
+      await meApi.postProgress(token, { districtId, levelId, stars });
+    }
+  }
 }

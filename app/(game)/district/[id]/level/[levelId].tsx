@@ -81,34 +81,50 @@ export default function LevelScreen() {
 
   const goNextOrDistrict = useCallback(() => {
     if (!level) return;
+    const dp = useProgressStore.getState().byDistrict[districtId];
+    const completedCount = dp?.completedLevels.length ?? 0;
     // Quartier terminé → écran de félicitations + récompenses EN PRIORITÉ,
     // quel que soit le niveau qui vient de le compléter.
-    const completedCount =
-      useProgressStore.getState().byDistrict[districtId]?.completedLevels
-        .length ?? 0;
     if (isDistrictCompleted(districtId, completedCount)) {
       router.replace(`/(game)/district/${districtId}/complete`);
       return;
     }
-    // Sinon : niveau suivant s'il existe, sinon retour au quartier.
+    // Niveau courant NON validé (ex. « Continuer » après une mauvaise
+    // réponse) : on ne saute PAS au niveau suivant — sinon on crée un trou et
+    // on contourne le verrou séquentiel. Retour au quartier : le niveau reste
+    // « en cours » et devra être réussi pour débloquer la suite.
+    const currentDone = dp?.completedLevels.includes(level.id) ?? false;
+    if (!currentDone) {
+      router.replace(`/(game)/district/${districtId}`);
+      return;
+    }
+    // Niveau validé → niveau suivant s'il existe, sinon retour au quartier.
     const ordered = getLevelIdsInOrderForDistrict(districtId);
     const idx = ordered.indexOf(level.id);
     const nextId = idx >= 0 ? ordered[idx + 1] : undefined;
-    if (nextId) {
-      router.replace(`/(game)/district/${districtId}/level/${nextId}`);
-    } else {
-      router.replace(`/(game)/district/${districtId}`);
-    }
+    router.replace(
+      nextId
+        ? `/(game)/district/${districtId}/level/${nextId}`
+        : `/(game)/district/${districtId}`
+    );
   }, [districtId, level, router]);
 
   const handleCorrect = useCallback(() => {
     if (!level) return;
+    // XP créditée une seule fois : les niveaux sont rejouables, mais rejouer
+    // un niveau déjà complété ne doit PAS re-créditer d'XP.
+    const alreadyCompleted =
+      useProgressStore
+        .getState()
+        .byDistrict[districtId]?.completedLevels.includes(level.id) ?? false;
     const stars = (hintUsed ? 2 : 3) as 1 | 2 | 3;
     completeLevel(districtId, level.id, stars);
-    addXP(level.xpReward);
     // Synchronisation best-effort avec le backend.
     void syncProgress(districtId, level.id, stars);
-    void syncUser();
+    if (!alreadyCompleted) {
+      addXP(level.xpReward);
+      void syncUser();
+    }
   }, [addXP, completeLevel, districtId, hintUsed, level]);
 
   const handleHintUsed = useCallback(() => {

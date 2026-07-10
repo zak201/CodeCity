@@ -120,6 +120,13 @@ export function QCM({
     onComplete();
   }, [clearTimer, onComplete]);
 
+  const handleRetry = useCallback(() => {
+    clearTimer();
+    setPhase('idle');
+    setSelectedId(null);
+    explainOpacity.setValue(0);
+  }, [clearTimer, explainOpacity]);
+
   const handleHintPress = useCallback(() => {
     if (hintConsumed || phase !== 'idle' || !hint) return;
     setHintVisible(true);
@@ -224,17 +231,32 @@ export function QCM({
       ) : null}
 
       {isWrong ? (
-        <Pressable
-          onPress={handleContinue}
-          accessibilityLabel="Continuer"
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.continueBtn,
-            pressed && styles.continueBtnPressed,
-          ]}
-        >
-          <Text style={styles.continueBtnText}>Continuer</Text>
-        </Pressable>
+        <View style={styles.wrongActions}>
+          <Pressable
+            onPress={handleRetry}
+            accessibilityLabel="Réessayer"
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.continueBtn,
+              styles.retryBtn,
+              pressed && styles.continueBtnPressed,
+            ]}
+          >
+            <Text style={styles.continueBtnText}>Réessayer</Text>
+          </Pressable>
+          <Pressable
+            onPress={handleContinue}
+            accessibilityLabel="Continuer"
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.continueBtn,
+              styles.continueBtnFlex,
+              pressed && styles.continueBtnPressed,
+            ]}
+          >
+            <Text style={styles.continueBtnText}>Continuer</Text>
+          </Pressable>
+        </View>
       ) : null}
     </View>
   );
@@ -357,5 +379,19 @@ const makeStyles = (c: ThemePalette) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     fontFamily: mono as string,
+  },
+  wrongActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  retryBtn: {
+    flex: 1,
+    marginTop: 0,
+    backgroundColor: 'transparent',
+  },
+  continueBtnFlex: {
+    flex: 1,
+    marginTop: 0,
   },
 });

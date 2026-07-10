@@ -10,6 +10,9 @@ datasource db {
 model User {
   id             String   @id @default(cuid())
   username       String   @unique
+  email          String?  @unique
+  passwordHash   String?
+  role           String   @default("user")
   xp             Int      @default(0)
   level          Int      @default(1)
   placementLevel String?

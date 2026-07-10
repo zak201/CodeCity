@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -84,9 +84,7 @@ function ProgressBar({ current, total }: ProgressBarProps) {
   const pct = total > 0 ? (current / total) * 100 : 0;
   return (
     <View style={styles.progressWrapper}>
-      <Text style={styles.progressLabel}>
-        {current} / {total}
-      </Text>
+      <Text style={styles.progressLabel}>Question {current}</Text>
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${pct}%` }]} />
       </View>
@@ -212,6 +210,15 @@ export default function PlacementTestScreen() {
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Nettoyage : évite un setState après démontage si on quitte l'écran pendant
+  // le délai d'auto-avance (1 s) qui suit une bonne réponse.
+  useEffect(
+    () => () => {
+      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    },
+    []
+  );
 
   // Nombre effectif de questions (6 ou 8 selon les résultats du bloc 1-2)
   const allQuestions = placementQuestions;
