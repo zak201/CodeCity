@@ -1,4 +1,4 @@
-import Constants from 'expo-constants';
+import { BASE_API_URL } from './api';
 
 /**
  * Point d'accès unique aux répliques de LOG (l'IA tutrice).
@@ -12,12 +12,6 @@ import Constants from 'expo-constants';
  * timeout), on retombe silencieusement sur une base de connaissances locale :
  * l'app reste utile sans réseau (offline-first).
  */
-
-/** URL du backend, configurable via app.json → expo.extra.apiUrl. */
-const BASE_URL = (
-  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-  'http://localhost:3050/api'
-).replace(/\/+$/, '');
 
 /** Timeout d'appel à l'IA temps réel (les modèles rapides répondent < 8 s). */
 const REQUEST_TIMEOUT_MS = 8000;
@@ -117,7 +111,7 @@ async function askLogRemote(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const res = await fetch(`${BASE_URL}/log/ask`, {
+    const res = await fetch(`${BASE_API_URL}/log/ask`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ concept, question, context }),

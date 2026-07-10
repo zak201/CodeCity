@@ -12,10 +12,36 @@ import type { DifficultyLevel } from '../types/game';
  * URL configurable via `expo.extra.apiUrl` dans app.json (défaut : localhost).
  * Sur un device physique, remplace localhost par l'IP LAN de la machine.
  */
-export const BASE_API_URL = (
-  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-  'http://localhost:3050/api'
-).replace(/\/+$/, '');
+const API_PORT = 3050;
+
+/**
+ * Résout l'URL de l'API :
+ * - si `expo.extra.apiUrl` cible un hôte non-localhost, on l'utilise tel quel ;
+ * - sinon, sur un appareil physique (Expo Go), on déduit l'IP LAN de la machine
+ *   de dev depuis l'hôte Metro (`hostUri`) → aucune config manuelle ;
+ * - repli : localhost (web / simulateur iOS).
+ */
+function resolveApiUrl(): string {
+  const configured = (
+    Constants.expoConfig?.extra?.apiUrl as string | undefined
+  )?.replace(/\/+$/, '');
+  const isLocalhost = (u?: string) =>
+    !u || /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(u);
+
+  if (configured && !isLocalhost(configured)) return configured;
+
+  const hostUri =
+    (Constants.expoConfig as { hostUri?: string } | null)?.hostUri ??
+    (Constants as { expoGoConfig?: { debuggerHost?: string } }).expoGoConfig
+      ?.debuggerHost;
+  const host = hostUri?.split(':')[0];
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    return `http://${host}:${API_PORT}/api`;
+  }
+  return configured ?? `http://localhost:${API_PORT}/api`;
+}
+
+export const BASE_API_URL = resolveApiUrl();
 
 const TIMEOUT_MS = 4000;
 
