@@ -238,17 +238,17 @@ Quatre mécaniques de jeu : **QCM narratif**, **prédiction de sortie**, **remis
 
 | Activité | Livrable | Où le trouver |
 |---|---|---|
-| 1 | Architecture globale + doc technique | [`ARCHITECTURE.md`](ARCHITECTURE.md), [`docs/document-de-cadrage.html`](docs/document-de-cadrage.html) |
-| 2 | MCD & MLD | [`docs/document-de-cadrage.html`](docs/document-de-cadrage.html) (§2), `server/prisma/schema.prisma` |
+| 1 | Architecture globale + doc technique | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| 2 | MCD & MLD | `server/prisma/schema.prisma` (modèle de données) + document de cadrage (PDF) |
 | 3 | Routes API REST | `server/src/routes/`, section **API REST** ci-dessus |
-| 4 | Document de cadrage + wireframes | [`docs/document-de-cadrage.html`](docs/document-de-cadrage.html), [`docs/mockups/`](docs/mockups/) |
+| 4 | Document de cadrage + wireframes | Document de cadrage (PDF) ; wireframes dans [`docs/mockups/`](docs/mockups/) |
 | 5 | Sécurisation JWT | `server/src/auth.ts`, `server/src/routes/auth.ts`, section **Authentification** |
 | 6 | Frontend + flux de données | `app/`, `lib/`, `store/` |
 | 7–8 | Implémentation & optimisation | tout le dépôt, [`SPRINT.md`](SPRINT.md) (sprint de stabilisation) |
 | 9 | Finalisation + analyse critique | ce README (ci-dessous) + [`SPRINT.md`](SPRINT.md) |
 | — | Fonctionnalité IA | `lib/claude.ts`, `server/src/anthropic.ts`, `server/src/routes/log.ts` |
 
-**Documents du projet :** [Document de cadrage](docs/document-de-cadrage.html) · [Présentation / slides](docs/presentation.html) · [Architecture technique](ARCHITECTURE.md) · [Rapport de sprint](SPRINT.md).
+**Documents du projet :** [Architecture technique](ARCHITECTURE.md) · [Rapport de sprint](SPRINT.md). Le document de cadrage et la présentation sont fournis en PDF.
 
 ---
 
