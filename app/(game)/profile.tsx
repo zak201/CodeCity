@@ -1,5 +1,13 @@
 import { useCallback, useMemo } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -64,25 +72,29 @@ export default function ProfileScreen() {
   const withinLevel = 100 - remaining; // 0..100
   const rank = placementLevel ? PLACEMENT_LABEL[placementLevel] : 'Recrue';
 
-  const handleReset = useCallback(() => {
-    Alert.alert(
-      'Recommencer depuis le début ?',
-      'Ta progression (niveaux, étoiles, XP, série) sera effacée sur cet appareil. Tu repasseras par l’accueil et le test de placement. Action irréversible.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Tout réinitialiser',
-          style: 'destructive',
-          onPress: () => {
-            resetProgress();
-            resetStreak();
-            resetUser();
-            router.replace('/(game)/welcome');
-          },
-        },
-      ]
-    );
+  const doReset = useCallback(() => {
+    resetProgress();
+    resetStreak();
+    resetUser();
+    router.replace('/(game)/welcome');
   }, [resetProgress, resetStreak, resetUser, router]);
+
+  const handleReset = useCallback(() => {
+    const message =
+      'Recommencer depuis le début ? Ta progression (niveaux, étoiles, XP, série) sera effacée sur cet appareil. Action irréversible.';
+    // Alert.alert n'est pas fiable sur le web (react-native-web) : on y utilise
+    // la confirmation native du navigateur.
+    if (Platform.OS === 'web') {
+      const confirmFn = (globalThis as { confirm?: (m?: string) => boolean })
+        .confirm;
+      if (!confirmFn || confirmFn(message)) doReset();
+      return;
+    }
+    Alert.alert('Recommencer depuis le début ?', message, [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Tout réinitialiser', style: 'destructive', onPress: doReset },
+    ]);
+  }, [doReset]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>

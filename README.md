@@ -3,7 +3,7 @@
 > *« La ville de CodeCity est entièrement gouvernée par des algorithmes. Un bug mystérieux se propage. LOG, l'IA gardienne, t'a recruté comme Code Architect. À toi de sauver la ville. »*
 
 **Projet fil rouge — Développement d'application front / back (M2 Dev Fullstack, Ynov Connect).**
-Auteur : **ANOUAR Zakaria** · Dépôt : https://github.com/zak201/CodeCity
+Auteur : **ZAKARIA Anouar** · Dépôt : https://github.com/zak201/CodeCity
 
 [![Expo](https://img.shields.io/badge/Expo-54-000020?style=flat&logo=expo&logoColor=white)](https://expo.dev/)
 [![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?style=flat&logo=react&logoColor=black)](https://reactnative.dev/)
