@@ -1,7 +1,8 @@
 import './loadEnv';
 import express from 'express';
+import { authRouter } from './routes/auth';
+import { meRouter } from './routes/me';
 import { usersRouter } from './routes/users';
-import { progressRouter } from './routes/progress';
 import { logRouter } from './routes/log';
 import { cors } from './middlewares/cors';
 import { errorHandler } from './middlewares/errorHandler';
@@ -17,8 +18,9 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.use('/api/auth', authRouter);
+app.use('/api/me', meRouter);
 app.use('/api/users', usersRouter);
-app.use('/api/progress', progressRouter);
 app.use('/api/log', logRouter);
 
 app.use(errorHandler);

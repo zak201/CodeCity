@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+// Mot de passe commun aux comptes de démonstration (voir README).
+const DEMO_PASSWORD = 'codecity123';
 
 async function main(): Promise<void> {
   await prisma.userProgress.deleteMany();
@@ -10,10 +14,27 @@ async function main(): Promise<void> {
   const dayMs = 24 * 60 * 60 * 1000;
   const today = new Date();
   const yesterday = new Date(today.getTime() - dayMs);
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
+  // Compte ADMIN de démo (gestion des rôles JWT) : peut lister /api/users.
+  await prisma.user.create({
+    data: {
+      username: 'Admin',
+      email: 'admin@codecity.dev',
+      passwordHash,
+      role: 'admin',
+      xp: 0,
+      level: 1,
+    },
+  });
+
+  // Compte JOUEUR de démo (connexion + synchro de la progression).
   await prisma.user.create({
     data: {
       username: 'CodeArchitect01',
+      email: 'player@codecity.dev',
+      passwordHash,
+      role: 'user',
       xp: 240,
       level: 4,
       placementLevel: 'beginner',
@@ -33,6 +54,7 @@ async function main(): Promise<void> {
     },
   });
 
+  // Comptes anonymes (données seules, sans identifiants).
   await prisma.user.create({
     data: {
       username: 'ByteNomad02',
@@ -48,22 +70,6 @@ async function main(): Promise<void> {
       },
       progresses: {
         create: [{ districtId: 'q2', levelId: 'q2-c1-l01', stars: 1 }],
-      },
-    },
-  });
-
-  await prisma.user.create({
-    data: {
-      username: 'StackRunner03',
-      xp: 0,
-      level: 1,
-      placementLevel: null,
-      streak: {
-        create: {
-          currentStreak: 0,
-          longestStreak: 0,
-          lastPlayedDate: null,
-        },
       },
     },
   });

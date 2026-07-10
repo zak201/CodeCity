@@ -9,6 +9,7 @@ export default function GameLayout() {
       <Stack.Screen name="welcome" />
       <Stack.Screen name="map" />
       <Stack.Screen name="placement-test" />
+      <Stack.Screen name="auth" />
     </Stack>
   );
 }

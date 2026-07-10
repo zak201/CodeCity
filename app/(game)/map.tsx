@@ -17,7 +17,7 @@ import { districts } from '../../data/districts';
 import { computeLockState, getEarnedBadges } from '../../data/progression';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { creditSkippedDistricts } from '../../lib/placementRewards';
-import { ensureUser, syncStreak } from '../../lib/sync';
+import { syncStreak } from '../../lib/sync';
 import { useProgressStore } from '../../store/progressStore';
 import { useStreakStore } from '../../store/streakStore';
 import { useThemeStore } from '../../store/themeStore';
@@ -315,12 +315,9 @@ export default function CityMapScreen() {
     // Rattrapage : crédite les quartiers sautés au placement (idempotent).
     creditSkippedDistricts(placementLevel);
     recordPlay();
-    // Synchronisation best-effort : crée le compte serveur si besoin, puis
-    // pousse le streak. N'interrompt jamais le jeu en cas d'échec réseau.
-    void (async () => {
-      await ensureUser();
-      void syncStreak();
-    })();
+    // Synchronisation best-effort : si un compte est connecté, pousse la
+    // série. N'interrompt jamais le jeu (hors-ligne / non connecté = no-op).
+    void syncStreak();
   }, [
     placementLevel,
     recordPlay,

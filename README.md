@@ -29,6 +29,7 @@ Jeu mobile éducatif qui apprend l'algorithmique aux débutants complets, à tra
 | Navigation | Expo Router (file-based) |
 | State | Zustand + persistance AsyncStorage (profil, progression, streak) |
 | Backend | Express.js + Prisma |
+| Auth | JWT (bcrypt + jsonwebtoken), rôles user / admin |
 | Base de données | SQLite (dev) → PostgreSQL/Supabase (prod) |
 | IA (LOG) | **Claude API** (`@anthropic-ai/sdk`) via proxy backend `POST /api/log/ask` ; repli sur base locale si hors-ligne ou clé absente |
 | Animations | React Native Reanimated + Lottie |
@@ -151,6 +152,12 @@ npm run dev
 
 Vérifier que l'API répond : ouvrir **http://localhost:3050/api/health** → `{"status":"ok"}`.
 
+> **Auth JWT & comptes de démo.** Le seed crée deux comptes (mot de passe
+> `codecity123`) : **`admin@codecity.dev`** (rôle **admin** — peut lister
+> `/api/users`) et **`player@codecity.dev`** (rôle **user**). Le secret de
+> signature se règle via `JWT_SECRET` dans `server/.env` (un défaut de dev
+> existe si absent).
+
 ### 3) IA LOG — Claude (optionnel)
 
 Sans clé, LOG répond déjà (base locale). Pour activer les **réponses génératives de Claude** :
@@ -200,23 +207,38 @@ Base URL : `http://localhost:3050/api`
 > L'URL de l'API se configure dans `app.json` → `expo.extra.apiUrl` ; sur un
 > **device physique**, remplace `localhost` par l'IP LAN de la machine.
 
-### Utilisateurs
+### Santé
 
 ```
 GET    /health             → { status: "ok" } (sonde de disponibilité)
-GET    /users              → Liste tous les users
-GET    /users/:id          → Un user avec progress + streak
-POST   /users              → Crée un user { username }
-PATCH  /users/:id          → Met à jour { xp?, level?, placementLevel? }
-PUT    /users/:id/streak   → Met à jour { currentStreak, longestStreak, lastPlayedDate }
 ```
 
-### Progression
+### Auth (JWT)
 
 ```
-GET    /progress/:userId   → Niveaux complétés d'un user
-POST   /progress           → Enregistre/actualise un niveau { userId, districtId, levelId, stars }
-                             (upsert sur (userId, levelId) : rejouer un niveau ne crée pas de doublon)
+POST   /auth/register      → { email, username, password } → { token, user }
+POST   /auth/login         → { email, password }           → { token, user }
+GET    /auth/me            → profil du user connecté (Authorization: Bearer <token>)
+```
+
+Mots de passe hachés avec **bcrypt** ; jeton **JWT** (HS256) renvoyé au client.
+
+### Données du joueur connecté — `/me` (token requis)
+
+```
+PATCH  /me                 → { xp?, level?, placementLevel? }
+GET    /me/progress        → niveaux complétés du user connecté
+POST   /me/progress        → upsert d'un niveau { districtId, levelId, stars }
+PUT    /me/streak          → { currentStreak, longestStreak, lastPlayedDate }
+```
+
+> L'utilisateur est **dérivé du token**, jamais d'un id fourni par le client.
+
+### Admin (rôle `admin` requis)
+
+```
+GET    /users              → liste des utilisateurs (sans le hash de mot de passe)
+GET    /users/:id          → un utilisateur + progression + série
 ```
 
 ### IA — LOG (tuteur)
@@ -230,9 +252,11 @@ POST   /log/ask            → { concept, question } → { answer } (relais vers
 
 | Code | Signification |
 |---|---|
-| 400 | Champ requis manquant dans le body |
+| 400 | Champ requis manquant ou invalide |
+| 401 | Token absent, invalide ou expiré |
+| 403 | Rôle insuffisant (route réservée, ex. admin) |
 | 404 | Utilisateur ou ressource introuvable |
-| 409 | Nom d'utilisateur déjà pris |
+| 409 | Email ou nom d'utilisateur déjà pris |
 | 500 | Erreur serveur interne |
 
 ### Tester les routes
@@ -247,6 +271,9 @@ Ouvrir `server/test.http` dans VSCode avec l'extension **REST Client**.
 model User {
   id             String         @id @default(cuid())
   username       String         @unique
+  email          String?        @unique
+  passwordHash   String?
+  role           String         @default("user")
   xp             Int            @default(0)
   level          Int            @default(1)
   placementLevel String?

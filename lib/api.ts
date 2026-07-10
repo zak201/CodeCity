@@ -6,45 +6,41 @@ import type { DifficultyLevel } from '../types/game';
  * Client HTTP du backend CodeCity.
  *
  * Conçu « offline-first » : chaque appel a un timeout court et renvoie `null`
- * en cas d'échec (serveur absent, hors-ligne, device qui ne joint pas le LAN).
- * L'app reste pleinement jouable sans backend ; la synchronisation est un bonus.
+ * en cas d'échec (serveur absent, hors-ligne, token expiré). L'app reste
+ * pleinement jouable sans backend ; la synchronisation est un bonus.
  *
  * URL configurable via `expo.extra.apiUrl` dans app.json (défaut : localhost).
  * Sur un device physique, remplace localhost par l'IP LAN de la machine.
  */
-const BASE_URL = (
+export const BASE_API_URL = (
   (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
   'http://localhost:3050/api'
 ).replace(/\/+$/, '');
 
 const TIMEOUT_MS = 4000;
 
-export interface ApiUser {
-  id: string;
-  username: string;
-  xp: number;
-  level: number;
-  placementLevel?: string | null;
-}
-
-export interface ApiProgress {
-  id: string;
-  userId: string;
-  districtId: string;
-  levelId: string;
-  stars: number;
+interface RequestOptions {
+  method?: string;
+  body?: unknown;
+  token?: string | null;
 }
 
 async function request<T>(
   path: string,
-  options?: RequestInit
+  options: RequestOptions = {}
 ): Promise<T | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${BASE_URL}${path}`, {
-      ...options,
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (options.token) headers.Authorization = `Bearer ${options.token}`;
+
+    const res = await fetch(`${BASE_API_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       signal: controller.signal,
     });
     if (!res.ok) return null;
@@ -57,50 +53,29 @@ async function request<T>(
   }
 }
 
-export const api = {
-  health: () => request<{ status: string }>('/health'),
+export const health = () => request<{ status: string }>('/health');
 
-  createUser: (username: string) =>
-    request<ApiUser>('/users', {
-      method: 'POST',
-      body: JSON.stringify({ username }),
-    }),
-
-  getUser: (id: string) => request<ApiUser>(`/users/${id}`),
-
-  patchUser: (
-    id: string,
+/**
+ * Synchronisation de l'utilisateur AUTHENTIFIÉ (best-effort, silencieuse).
+ * Les données sont dérivées du token côté serveur (routes `/api/me`).
+ */
+export const meApi = {
+  patchMe: (
+    token: string,
     data: { xp?: number; level?: number; placementLevel?: DifficultyLevel | null }
-  ) =>
-    request<ApiUser>(`/users/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
+  ) => request('/me', { method: 'PATCH', body: data, token }),
 
-  getProgress: (userId: string) =>
-    request<ApiProgress[]>(`/progress/${userId}`),
-
-  postProgress: (data: {
-    userId: string;
-    districtId: string;
-    levelId: string;
-    stars: number;
-  }) =>
-    request<ApiProgress>('/progress', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+  postProgress: (
+    token: string,
+    data: { districtId: string; levelId: string; stars: number }
+  ) => request('/me/progress', { method: 'POST', body: data, token }),
 
   putStreak: (
-    userId: string,
+    token: string,
     data: {
       currentStreak: number;
       longestStreak: number;
       lastPlayedDate: string | null;
     }
-  ) =>
-    request<unknown>(`/users/${userId}/streak`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+  ) => request('/me/streak', { method: 'PUT', body: data, token }),
 };
