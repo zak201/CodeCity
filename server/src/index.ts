@@ -32,8 +32,9 @@ server.once('listening', () => {
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {
     console.error(
-      `Impossible d’utiliser le port ${PORT} : il est déjà pris (arrête l’autre processus ou changes PORT dans server/.env).`
+      `Impossible d’utiliser le port ${PORT} : il est déjà pris (arrête l’autre processus ou change PORT dans server/.env).`
     );
+    process.exit(1);
   }
   throw err;
 });

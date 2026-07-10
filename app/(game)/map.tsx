@@ -286,6 +286,9 @@ export default function CityMapScreen() {
   const byDistrict = useProgressStore((s) => s.byDistrict);
   const currentStreak = useStreakStore((s) => s.currentStreak);
   const recordPlay = useStreakStore((s) => s.actions.recordPlay);
+  const userHydrated = useUserStore((s) => s._hasHydrated);
+  const progressHydrated = useProgressStore((s) => s._hasHydrated);
+  const streakHydrated = useStreakStore((s) => s._hasHydrated);
 
   const completedCountOf = useCallback(
     (districtId: string) =>
@@ -305,6 +308,10 @@ export default function CityMapScreen() {
 
   useEffect(() => {
     if (placementLevel === null) return;
+    // Attendre l'hydratation des 3 stores : sinon `creditSkippedDistricts`
+    // (lit progressStore) re-crédite l'XP, et `recordPlay` (streakStore) peut
+    // écraser la série au démarrage à froid, avant la rehydratation.
+    if (!userHydrated || !progressHydrated || !streakHydrated) return;
     // Rattrapage : crédite les quartiers sautés au placement (idempotent).
     creditSkippedDistricts(placementLevel);
     recordPlay();
@@ -314,7 +321,13 @@ export default function CityMapScreen() {
       await ensureUser();
       void syncStreak();
     })();
-  }, [placementLevel, recordPlay]);
+  }, [
+    placementLevel,
+    recordPlay,
+    userHydrated,
+    progressHydrated,
+    streakHydrated,
+  ]);
 
   const needsPlacement = placementLevel === null;
 

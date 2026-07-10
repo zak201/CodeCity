@@ -20,10 +20,13 @@ interface StreakStoreState {
   currentStreak: number;
   longestStreak: number;
   lastPlayedDate: string | null;
+  /** Passe à true quand la persistance a fini de recharger l'état. */
+  _hasHydrated: boolean;
 }
 
 interface StreakStoreActions {
   recordPlay: () => void;
+  setHasHydrated: (value: boolean) => void;
 }
 
 type StreakStore = StreakStoreState & { actions: StreakStoreActions };
@@ -34,6 +37,7 @@ export const useStreakStore = create<StreakStore>()(
       currentStreak: 0,
       longestStreak: 0,
       lastPlayedDate: null,
+      _hasHydrated: false,
       actions: {
         recordPlay: () => {
           const now = new Date();
@@ -56,6 +60,7 @@ export const useStreakStore = create<StreakStore>()(
             lastPlayedDate: now.toISOString(),
           });
         },
+        setHasHydrated: (value) => set({ _hasHydrated: value }),
       },
     }),
     {
@@ -66,6 +71,11 @@ export const useStreakStore = create<StreakStore>()(
         longestStreak: state.longestStreak,
         lastPlayedDate: state.lastPlayedDate,
       }),
+      // Marque l'hydratation terminée quoi qu'il arrive : `recordPlay` ne doit
+      // s'exécuter qu'après, sinon la série peut être écrasée au démarrage.
+      onRehydrateStorage: () => () => {
+        useStreakStore.getState().actions.setHasHydrated(true);
+      },
     }
   )
 );
