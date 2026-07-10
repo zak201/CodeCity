@@ -13,19 +13,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ThemePalette } from '../../constants/palette';
 import { useThemeColors } from '../../hooks/useThemeColors';
-import { askLog } from '../../lib/claude';
+import { askLog, type LogContext } from '../../lib/claude';
 import { LOGBubble } from './LOGBubble';
 
 export interface LOGModalProps {
   visible: boolean;
   concept: string;
+  /** Contexte de jeu (quartier, niveau…) pour des réponses dans l'univers. */
+  context?: LogContext;
   onClose: () => void;
 }
 
 /**
  * Modal plein écran « Demande à LOG » : intro, saisie, réponse fictive pour la phase MVP.
  */
-export function LOGModal({ visible, concept, onClose }: LOGModalProps) {
+export function LOGModal({ visible, concept, context, onClose }: LOGModalProps) {
   const c = useThemeColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [question, setQuestion] = useState('');
@@ -44,9 +46,9 @@ export function LOGModal({ visible, concept, onClose }: LOGModalProps) {
 
   const handleSend = useCallback(async () => {
     setReply('…');
-    const answer = await askLog({ concept, question });
+    const answer = await askLog({ concept, question, context });
     setReply(answer);
-  }, [concept, question]);
+  }, [concept, question, context]);
 
   return (
     <Modal

@@ -66,6 +66,19 @@ export default function LevelScreen() {
     (id) => byDistrict[id]?.completedLevels.length ?? 0
   );
 
+  // Contexte transmis à LOG pour des réponses ancrées dans l'univers du jeu
+  // (jamais la solution du niveau : on n'envoie que ce que le joueur voit).
+  const logContext = useMemo(
+    () => ({
+      districtName: district?.name,
+      districtStory: district?.story,
+      chapterTitle: level ? getChapterTitle(districtId, level.chapter) : undefined,
+      levelTitle: level?.title,
+      levelQuestion: level?.question,
+    }),
+    [district, level, districtId]
+  );
+
   const goNextOrDistrict = useCallback(() => {
     if (!level) return;
     // Quartier terminé → écran de félicitations + récompenses EN PRIORITÉ,
@@ -157,6 +170,7 @@ export default function LevelScreen() {
       <LOGModal
         visible={logModalVisible}
         concept={district?.concept ?? 'ce sujet'}
+        context={logContext}
         onClose={() => setLogModalVisible(false)}
       />
       <ScrollView contentContainerStyle={styles.scroll}>

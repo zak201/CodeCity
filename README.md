@@ -8,7 +8,7 @@
 [![Zustand](https://img.shields.io/badge/Zustand-5-433E38?style=flat)](https://github.com/pmndrs/zustand)
 [![Express](https://img.shields.io/badge/Express-5.1-000000?style=flat&logo=express&logoColor=white)](https://expressjs.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?style=flat&logo=prisma&logoColor=white)](https://www.prisma.io/)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
 > *"La ville de CodeCity est entièrement gouvernée par des algorithmes. Un bug mystérieux se propage. LOG, l'IA gardienne, t'a recruté comme Code Architect. À toi de sauver la ville."*
 
@@ -30,7 +30,7 @@ Jeu mobile éducatif qui apprend l'algorithmique aux débutants complets, à tra
 | State | Zustand + persistance AsyncStorage (profil, progression, streak) |
 | Backend | Express.js + Prisma |
 | Base de données | SQLite (dev) → PostgreSQL/Supabase (prod) |
-| IA (LOG) | Base de connaissances locale (MVP, `lib/claude.ts`) ; Claude API via proxy backend en V1 |
+| IA (LOG) | **Claude API** (`@anthropic-ai/sdk`) via proxy backend `POST /api/log/ask` ; repli sur base locale si hors-ligne ou clé absente |
 | Animations | React Native Reanimated + Lottie |
 
 ---
@@ -47,11 +47,13 @@ CodeCity/
 │       ├── welcome.tsx         # Accueil + intro LOG
 │       ├── map.tsx             # Carte SVG des quartiers
 │       ├── placement-test.tsx  # Test de niveau initial
+│       ├── profile.tsx         # Profil : badges + statistiques
 │       └── district/[id]/    # Quartiers + niveaux
 │           ├── index.tsx
+│           ├── complete.tsx   # Fin de quartier (badge + victoire)
 │           └── level/[levelId].tsx
 ├── components/
-│   ├── game/                   # QCM (autres mécaniques : prévues)
+│   ├── game/                   # QCM, Prediction, OrderLines, FillBlanks
 │   └── log/                    # LOGBubble, LOGModal
 ├── constants/                  # Palette (ex. colors.ts)
 ├── store/
@@ -62,6 +64,10 @@ CodeCity/
 │   ├── districts.ts            # Quartiers (déblocage, méta)
 │   ├── placementTest.ts        # 8 questions + scoring
 │   └── levels/                 # Niveaux par quartier + registry
+├── lib/
+│   ├── claude.ts               # askLog : IA LOG (backend + repli local)
+│   ├── api.ts                  # Client HTTP backend (offline-first)
+│   └── sync.ts                 # Synchro best-effort
 ├── types/
 │   └── game.ts                 # Types TypeScript globaux
 └── server/                     # Backend API REST (testable à part)
@@ -70,53 +76,117 @@ CodeCity/
     │   └── seed.ts             # Données de test
     └── src/
         ├── routes/
-        │   ├── users.ts        # GET liste/détail, POST création
-        │   └── progress.ts     # GET / POST progression
+        │   ├── users.ts        # GET liste/détail, POST / PATCH
+        │   ├── progress.ts     # GET / POST progression
+        │   └── log.ts          # POST /log/ask → IA LOG (Claude)
         ├── middlewares/
+        │   ├── cors.ts
         │   └── errorHandler.ts # Gestion erreurs 400/404/500
+        ├── anthropic.ts        # Client Claude (clé côté serveur)
         └── index.ts            # Serveur Express (port .env, ex. 3050)
 ```
 
 ---
 
-## Installation
+## 🚀 Démarrage rapide (voir l'app en 2 min)
 
-### Prérequis
-- Node.js 18+
-- npm ou yarn
-- Expo Go sur ton téléphone (iOS / Android)
-
-### Front-end (app mobile)
+L'app est **jouable seule, sans backend ni clé** — les données sont stockées localement. Le plus simple pour la découvrir :
 
 ```bash
-# À la racine du projet
+git clone https://github.com/zak201/CodeCity.git
+cd CodeCity
 npm install
 npx expo start
 ```
 
-Scanner le QR code avec Expo Go.
+Dans le terminal Expo, choisis un mode :
 
-### Back-end (API REST)
+| Touche | Ouvre l'app dans… | Prérequis |
+|---|---|---|
+| **`w`** | le **navigateur** | rien (le plus rapide) |
+| QR code | **Expo Go** sur ton téléphone | app Expo Go + même Wi-Fi |
+| **`i`** / **`a`** | simulateur iOS / émulateur Android | Xcode / Android Studio |
+
+> Le backend et l'IA LOG sont **optionnels** (voir ci-dessous). Sans eux, le jeu tourne (progression locale) et LOG répond via une base de connaissances embarquée.
+
+---
+
+## Installation complète
+
+### Prérequis
+- **Node.js 20 LTS** ou plus, et **npm** — https://nodejs.org (vérifier avec `node -v`)
+- **Git**
+- Pour tester sur mobile : l'app **Expo Go** (App Store / Play Store). Sinon le mode **web** (`w`) suffit.
+- *(Optionnel — IA LOG)* une **clé API Anthropic** — https://console.anthropic.com
+
+### 1) Front-end — l'app (obligatoire)
+
+```bash
+npm install
+npx expo start
+```
+
+Puis `w` (web), QR code (Expo Go) ou `i`/`a` (simulateur/émulateur).
+
+### 2) Back-end — API REST (optionnel)
+
+Utile pour la **synchro** (multi-appareils) et l'**IA LOG en temps réel**.
 
 ```bash
 cd server
 npm install
 
-# Créer le fichier d'environnement
+# 1. Fichier d'environnement (PORT, DATABASE_URL, clé IA…)
 cp .env.example .env
-# Éditer .env : PORT=3050
 
-# Initialiser la base de données
-npx prisma migrate dev --name init
+# 2. Base SQLite : applique les migrations + génère le client Prisma
+npx prisma migrate dev
 
-# Insérer les données de test
+# 3. (optionnel) données de démonstration
 npx prisma db seed
 
-# Lancer le serveur
+# 4. Démarre l'API sur http://localhost:3050
 npm run dev
 ```
 
-Le serveur tourne sur `http://localhost:3050`.
+Vérifier que l'API répond : ouvrir **http://localhost:3050/api/health** → `{"status":"ok"}`.
+
+### 3) IA LOG — Claude (optionnel)
+
+Sans clé, LOG répond déjà (base locale). Pour activer les **réponses génératives de Claude** :
+
+1. Ajouter la clé dans **`server/.env`** :
+   ```env
+   ANTHROPIC_API_KEY=sk-ant-...
+   LOG_MODEL=claude-haiku-4-5   # optionnel — modèle par défaut
+   ```
+2. Relancer `npm run dev` dans `server/`.
+3. Dans l'app : ouvrir un niveau → bouton **?** → poser une question à LOG.
+
+> La clé reste **strictement côté serveur**, jamais embarquée dans l'app.
+
+### 4) Relier l'app au backend depuis un téléphone
+
+Par défaut l'app cible `http://localhost:3050/api` (`app.json` → `expo.extra.apiUrl`).
+
+- **Web** ou **simulateur iOS** : `localhost` fonctionne, rien à changer.
+- **Téléphone (Expo Go)** / **émulateur Android** : `localhost` désigne l'appareil lui-même. Mettre l'**IP LAN** de la machine dans `app.json` :
+  ```json
+  "extra": { "apiUrl": "http://192.168.1.20:3050/api" }
+  ```
+  (IP : `ipconfig` sous Windows, `ip a` sous macOS/Linux. Téléphone et PC sur le **même Wi-Fi**.)
+
+---
+
+## 🛠️ Dépannage
+
+| Problème | Solution |
+|---|---|
+| `Port 3050 déjà utilisé` | Changer `PORT=` dans `server/.env`, ou arrêter l'autre processus. |
+| L'app ne joint pas l'API (téléphone) | Mettre l'**IP LAN** dans `app.json` (§4) + même Wi-Fi. |
+| LOG donne des réponses génériques | Normal sans clé : ajouter `ANTHROPIC_API_KEY` (§3). Le repli local est volontaire (offline-first). |
+| Prisma : *client not generated* | Relancer `npx prisma generate` dans `server/`. |
+| `npx expo start` échoue | Vérifier **Node 20+** (`node -v`), puis supprimer `node_modules` et refaire `npm install`. |
 
 ---
 
@@ -147,6 +217,13 @@ PUT    /users/:id/streak   → Met à jour { currentStreak, longestStreak, lastP
 GET    /progress/:userId   → Niveaux complétés d'un user
 POST   /progress           → Enregistre/actualise un niveau { userId, districtId, levelId, stars }
                              (upsert sur (userId, levelId) : rejouer un niveau ne crée pas de doublon)
+```
+
+### IA — LOG (tuteur)
+
+```
+POST   /log/ask            → { concept, question } → { answer } (relais vers Claude, clé côté serveur)
+                             503 si ANTHROPIC_API_KEY absente → l'app bascule sur sa base locale
 ```
 
 ### Codes d'erreur
@@ -232,7 +309,7 @@ Au premier lancement, le joueur passe un test de 8 questions (présenté comme u
 
 LOG est l'intelligence artificielle gardienne de CodeCity. Elle guide le joueur, explique les concepts avec des analogies simples, et réagit à la progression.
 
-En **MVP**, les répliques de LOG sont **pré-écrites** dans l’app. En **V1**, l’intégration **Claude API** passera par un module dédié (`lib/claude.ts`, à ajouter).
+Les réponses de LOG proviennent de l’**API Claude** (modèle `claude-haiku-4-5` par défaut, configurable via `LOG_MODEL`), appelée **uniquement côté serveur** via `POST /api/log/ask` — la clé `ANTHROPIC_API_KEY` n’est jamais embarquée dans l’app. Tout passe par le module `lib/claude.ts`. Si le serveur est injoignable ou la clé absente, l’app retombe automatiquement sur une base de connaissances locale (offline-first).
 
 **Ton de LOG :** court, bienveillant, légèrement mystérieux. Jamais condescendant.
 
@@ -268,7 +345,7 @@ Retour après pause → "Bon retour. CodeCity t'attendait."
 - [x] Quartiers Q1 à Q4 complets
 - [x] Système de badges
 - [x] Mode hors-ligne (persistance locale AsyncStorage)
-- [ ] LOG IA activée (Claude API via proxy backend)
+- [x] LOG IA activée (Claude API via proxy backend `POST /api/log/ask`, repli local offline-first)
 - [ ] Notifications push (streak)
 
 ### V2.0
@@ -283,7 +360,7 @@ Retour après pause → "Bon retour. CodeCity t'attendait."
 
 - TypeScript strict — pas de `any`
 - Logique métier dans les hooks/stores, jamais dans les composants
-- Future intégration Claude API : uniquement via un module `lib/claude.ts` (à créer), jamais en direct depuis les écrans
+- Appels IA (Claude) : uniquement via `lib/claude.ts` (front) et le proxy backend `/api/log/ask` — jamais en direct depuis les écrans, jamais de clé dans l'app
 - Données de jeu dans `data/`, jamais en dur dans les composants
 - Mobile-first — zones de touch ≥ 44px
 - `accessibilityLabel` sur tous les éléments interactifs

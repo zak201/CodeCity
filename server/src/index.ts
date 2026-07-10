@@ -2,6 +2,7 @@ import './loadEnv';
 import express from 'express';
 import { usersRouter } from './routes/users';
 import { progressRouter } from './routes/progress';
+import { logRouter } from './routes/log';
 import { cors } from './middlewares/cors';
 import { errorHandler } from './middlewares/errorHandler';
 
@@ -18,6 +19,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/users', usersRouter);
 app.use('/api/progress', progressRouter);
+app.use('/api/log', logRouter);
 
 app.use(errorHandler);
 
