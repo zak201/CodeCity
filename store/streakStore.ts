@@ -27,6 +27,8 @@ interface StreakStoreState {
 interface StreakStoreActions {
   recordPlay: () => void;
   setHasHydrated: (value: boolean) => void;
+  /** Réinitialise la série (recommencer depuis le début). */
+  reset: () => void;
 }
 
 type StreakStore = StreakStoreState & { actions: StreakStoreActions };
@@ -61,6 +63,8 @@ export const useStreakStore = create<StreakStore>()(
           });
         },
         setHasHydrated: (value) => set({ _hasHydrated: value }),
+        reset: () =>
+          set({ currentStreak: 0, longestStreak: 0, lastPlayedDate: null }),
       },
     }),
     {

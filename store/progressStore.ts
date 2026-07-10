@@ -23,6 +23,8 @@ interface ProgressStoreActions {
   getCompletedCount: (districtId: string) => number;
   getDistrictStars: (districtId: string) => number;
   setHasHydrated: (value: boolean) => void;
+  /** Efface toute la progression (recommencer depuis le début). */
+  reset: () => void;
 }
 
 type ProgressStore = ProgressStoreState & {
@@ -70,6 +72,7 @@ export const useProgressStore = create<ProgressStore>()(
           return Object.values(dp.stars).reduce((sum, s) => sum + s, 0);
         },
         setHasHydrated: (value) => set({ _hasHydrated: value }),
+        reset: () => set({ byDistrict: {} }),
       },
     }),
     {

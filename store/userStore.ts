@@ -22,6 +22,8 @@ interface UserStoreActions {
   setPlacementLevel: (level: DifficultyLevel) => void;
   setIdentity: (userId: string, username: string) => void;
   setHasHydrated: (value: boolean) => void;
+  /** Réinitialise la partie (XP, niveau, placement) pour tout recommencer. */
+  reset: () => void;
 }
 
 type UserStore = UserStoreState & { actions: UserStoreActions };
@@ -44,6 +46,7 @@ export const useUserStore = create<UserStore>()(
         setPlacementLevel: (placementLevel) => set({ placementLevel }),
         setIdentity: (userId, username) => set({ userId, username }),
         setHasHydrated: (value) => set({ _hasHydrated: value }),
+        reset: () => set({ xp: 0, level: 1, placementLevel: null }),
       },
     }),
     {
