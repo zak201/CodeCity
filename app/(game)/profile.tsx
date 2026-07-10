@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -17,6 +17,8 @@ import { useProgressStore } from '../../store/progressStore';
 import { useStreakStore } from '../../store/streakStore';
 import { useUserStore } from '../../store/userStore';
 import type { DifficultyLevel } from '../../types/game';
+
+const DANGER = '#FF6B6B';
 
 const PLACEMENT_LABEL: Record<DifficultyLevel, string> = {
   'absolute-beginner': 'Recrue',
@@ -41,6 +43,9 @@ export default function ProfileScreen() {
   const authUser = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
   const logout = useAuthStore((s) => s.actions.logout);
+  const resetUser = useUserStore((s) => s.actions.reset);
+  const resetProgress = useProgressStore((s) => s.actions.reset);
+  const resetStreak = useStreakStore((s) => s.actions.reset);
 
   const completedCountOf = (id: string) =>
     byDistrict[id]?.completedLevels.length ?? 0;
@@ -58,6 +63,26 @@ export default function ProfileScreen() {
   const remaining = xpToNextLevel(xp);
   const withinLevel = 100 - remaining; // 0..100
   const rank = placementLevel ? PLACEMENT_LABEL[placementLevel] : 'Recrue';
+
+  const handleReset = useCallback(() => {
+    Alert.alert(
+      'Recommencer depuis le début ?',
+      'Ta progression (niveaux, étoiles, XP, série) sera effacée sur cet appareil. Tu repasseras par l’accueil et le test de placement. Action irréversible.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Tout réinitialiser',
+          style: 'destructive',
+          onPress: () => {
+            resetProgress();
+            resetStreak();
+            resetUser();
+            router.replace('/(game)/welcome');
+          },
+        },
+      ]
+    );
+  }, [resetProgress, resetStreak, resetUser, router]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -232,6 +257,15 @@ export default function ProfileScreen() {
             );
           })}
         </View>
+
+        <Pressable
+          onPress={handleReset}
+          accessibilityLabel="Recommencer depuis le début : réinitialiser la progression"
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.resetBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.resetText}>↺ Recommencer depuis le début</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -367,4 +401,14 @@ const makeStyles = (c: ThemePalette) =>
       borderColor: c.trackOn,
     },
     logoutText: { color: c.textSecondary, fontSize: 15, fontWeight: '700' },
+    resetBtn: {
+      marginTop: 24,
+      minHeight: 48,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: DANGER,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    resetText: { color: DANGER, fontSize: 15, fontWeight: '700' },
   });
